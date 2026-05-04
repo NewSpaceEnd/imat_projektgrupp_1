@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'iMat',
+      title: 'iMat - Projekgrupp 1',
       theme: ThemeData(colorScheme: AppTheme.colorScheme),
       home: const MainView(),
     );
