@@ -19,7 +19,7 @@ class InternetHandler {
   //static const baseURL = 'http://localhost:8080/imat2/api/';
   static const baseURL = 'https://dat216.cse.chalmers.se/imat2/api/';
 
-  static int kGroupId = 0;
+  static int kGroupId = 1;
 
   static const kDivider = '/';
 

@@ -9,7 +9,6 @@ import 'package:imat_app/model/imat/customer.dart';
 import 'package:imat_app/model/imat/order.dart';
 import 'package:imat_app/model/imat/product.dart';
 import 'package:imat_app/model/imat/product_detail.dart';
-import 'package:imat_app/model/imat/settings.dart';
 import 'package:imat_app/model/imat/shopping_cart.dart';
 import 'package:imat_app/model/imat/shopping_item.dart';
 import 'package:imat_app/model/imat/user.dart';
@@ -494,7 +493,7 @@ import 'package:http/http.dart' as http;
   */
 
   void _setUp() async {
-    InternetHandler.kGroupId = Settings.groupId;
+    InternetHandler.kGroupId = 1;
 
     // Fetching all products
     var response = await InternetHandler.getProducts();
