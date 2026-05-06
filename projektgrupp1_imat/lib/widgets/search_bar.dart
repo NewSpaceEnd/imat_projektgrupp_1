@@ -18,10 +18,16 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   void initState() {
     super.initState();
     _controller = TextEditingController();
+    // Rebuild when controller text changes to show/hide clear button
+    _controller.addListener(() => setState(() {}));
+    // Clear text when iMat selection resets to all products
+    widget.iMat.addListener(_onImatChanged);
   }
 
   @override
   void dispose() {
+    _controller.removeListener(() {});
+    widget.iMat.removeListener(_onImatChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -41,10 +47,26 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
+          suffixIcon: _controller.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _controller.clear();
+                    widget.iMat.selectAllProducts();
+                  },
+                )
+              : null,
         ),
         onChanged: (query) => _onSearchChanged(query),
       ),
     );
+  }
+
+  void _onImatChanged() {
+    // If selection was reset to all products, clear the search text
+    if (widget.iMat.selectProducts.length == widget.iMat.products.length && _controller.text.isNotEmpty) {
+      _controller.clear();
+    }
   }
 
   void _onSearchChanged(String query) {

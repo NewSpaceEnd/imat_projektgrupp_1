@@ -5,6 +5,9 @@ import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/widgets/category_sidebar.dart';
 import 'package:imat_app/widgets/search_bar.dart';
 import 'package:imat_app/widgets/category_section.dart';
+import 'package:imat_app/widgets/product_card.dart';
+import 'package:imat_app/widgets/top_nav_bar.dart';
+import 'package:imat_app/util/category_names.dart';
 import 'package:provider/provider.dart';
 
 class MainView extends StatelessWidget {
@@ -13,9 +16,10 @@ class MainView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var iMat = context.watch<ImatDataHandler>();
+    final isSearching = iMat.selectProducts.length != iMat.products.length;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('iMats produkter')),
+      return Scaffold(
+        appBar: TopNavBar(),
       body: Padding(
         padding: const EdgeInsets.all(AppTheme.paddingSmall),
         child: Row(
@@ -30,8 +34,45 @@ class MainView extends StatelessWidget {
                 children: [
                   // Search bar
                   SearchBarWidget(iMat: iMat),
-                  // Dynamically generate category sections
-                  ..._buildCategorySections(iMat),
+                  if (isSearching) ...[
+                    // Search results should appear first when searching
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: AppTheme.paddingSmall),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Sökresultat (${iMat.selectProducts.length})',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          TextButton(
+                            onPressed: () => iMat.selectAllProducts(),
+                            child: const Text('Rensa sökning'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppTheme.paddingSmall),
+                      child: Wrap(
+                        spacing: AppTheme.paddingSmall,
+                        runSpacing: AppTheme.paddingSmall,
+                        children: iMat.selectProducts
+                            .map((product) => SizedBox(width: 200, height: 280, child: ProductCard(product, iMat)))
+                            .toList(),
+                      ),
+                    ),
+                  ],
+                  if (iMat.favorites.isNotEmpty) ...[
+                    _FavoriteSectionWidget(iMat: iMat),
+                  ],
+                  if (iMat.products.isNotEmpty) ...[
+                    _SpecialOfferSectionWidget(iMat: iMat),
+                  ],
+                  if (!isSearching) ...[
+                    // Dynamically generate category sections
+                    ..._buildCategorySections(iMat),
+                  ],
                 ],
               ),
             ),
@@ -42,10 +83,10 @@ class MainView extends StatelessWidget {
   }
 
   List<Widget> _buildCategorySections(ImatDataHandler iMat) {
-    return ProductCategory.values
+    return orderedCategories
         .where((cat) => cat != ProductCategory.UNDEFINED)
         .map((cat) => CategorySectionWidget(
-              title: _categoryName(cat),
+              title: getCategoryName(cat),
               category: cat,
               iMat: iMat,
             ))
@@ -53,30 +94,111 @@ class MainView extends StatelessWidget {
   }
 }
 
+    class _FavoriteSectionWidget extends StatelessWidget {
+      final ImatDataHandler iMat;
 
-String _categoryName(ProductCategory cat) {
-  const categoryNames = {
-    ProductCategory.POD: 'Frukt och bär',
-    ProductCategory.BREAD: 'Bröd',
-    ProductCategory.BERRY: 'Bär',
-    ProductCategory.CITRUS_FRUIT: 'Citrusfrukter',
-    ProductCategory.HOT_DRINKS: 'Varma drycker',
-    ProductCategory.COLD_DRINKS: 'Kalla drycker',
-    ProductCategory.EXOTIC_FRUIT: 'Exotisk frukt',
-    ProductCategory.FISH: 'Fisk & skaldjur',
-    ProductCategory.VEGETABLE_FRUIT: 'Fruktgrönsaker',
-    ProductCategory.CABBAGE: 'Kål',
-    ProductCategory.MEAT: 'Charkuteri',
-    ProductCategory.DAIRIES: 'Mejeri',
-    ProductCategory.MELONS: 'Meloner',
-    ProductCategory.FLOUR_SUGAR_SALT: 'Mjöl, socker & salt',
-    ProductCategory.NUTS_AND_SEEDS: 'Nötter & frön',
-    ProductCategory.PASTA: 'Pasta',
-    ProductCategory.POTATO_RICE: 'Potatis & ris',
-    ProductCategory.ROOT_VEGETABLE: 'Rotfrukter',
-    ProductCategory.FRUIT: 'Frukt och grönt',
-    ProductCategory.SWEET: 'Godis & snacks',
-    ProductCategory.HERB: 'Örter',
-  };
-  return categoryNames[cat] ?? cat.name;
-}
+      const _FavoriteSectionWidget({required this.iMat});
+
+      @override
+      Widget build(BuildContext context) {
+        final preview = iMat.favorites.take(8).toList();
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: AppTheme.paddingLarge),
+          padding: const EdgeInsets.all(AppTheme.paddingSmall),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Favoriter',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  TextButton(
+                    onPressed: () => iMat.selectFavorites(),
+                    child: const Text('Till alla favoriter'),
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 280,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: preview.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: AppTheme.paddingSmall),
+                  itemBuilder: (ctx, i) => SizedBox(width: 200, child: ProductCard(preview[i], iMat)),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    class _SpecialOfferSectionWidget extends StatelessWidget {
+      final ImatDataHandler iMat;
+
+      const _SpecialOfferSectionWidget({required this.iMat});
+
+      List<Product> _specialOffers() {
+        final sorted = [...iMat.products]..sort((a, b) => a.price.compareTo(b.price));
+        final favoritesIds = iMat.favorites.map((p) => p.productId).toSet();
+        return sorted
+            .where((product) => !favoritesIds.contains(product.productId))
+            .take(8)
+            .toList();
+      }
+
+      @override
+      Widget build(BuildContext context) {
+        final preview = _specialOffers();
+
+        if (preview.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: AppTheme.paddingLarge),
+          padding: const EdgeInsets.all(AppTheme.paddingSmall),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Specialerbjudanden',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/offers'),
+                    child: const Text('Till alla erbjudanden'),
+                  ),
+                ],
+              ),
+              SizedBox(
+                height: 280,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: preview.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: AppTheme.paddingSmall),
+                  itemBuilder: (ctx, i) => SizedBox(width: 200, child: ProductCard(preview[i], iMat)),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    }

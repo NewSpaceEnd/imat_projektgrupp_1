@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/model/imat/product.dart';
 import 'package:imat_app/model/imat_data_handler.dart';
+import 'package:imat_app/util/category_names.dart';
 
 class CategorySidebar extends StatelessWidget {
   final ImatDataHandler iMat;
@@ -21,12 +22,33 @@ class CategorySidebar extends StatelessWidget {
                 padding: const EdgeInsets.all(AppTheme.paddingSmall),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: ProductCategory.values.take(10).map((cat) {
-                    return TextButton(
-                      onPressed: () => _onCategoryPressed(cat),
-                      child: Text(cat.name),
+                    children: [
+                      GestureDetector(
+                        onTap: () => _onFavoritesPressed(),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            'Favoriter',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...orderedCategories
+                          .where((cat) => cat != ProductCategory.UNDEFINED)
+                          .map((cat) {
+                    return GestureDetector(
+                      onTap: () => _onCategoryPressed(cat),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(
+                          getCategoryName(cat),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
                     );
                   }).toList(),
+                    ],
                 ),
               ),
             ],
@@ -40,4 +62,11 @@ class CategorySidebar extends StatelessWidget {
     final products = iMat.findProductsByCategory(category);
     iMat.selectSelection(products);
   }
+
+  void _onFavoritesPressed() {
+    iMat.selectFavorites();
+  }
 }
+
+
+

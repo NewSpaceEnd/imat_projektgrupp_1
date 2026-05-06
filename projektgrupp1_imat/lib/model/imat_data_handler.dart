@@ -8,6 +8,7 @@ import 'package:imat_app/model/imat/credit_card.dart';
 import 'package:imat_app/model/imat/customer.dart';
 import 'package:imat_app/model/imat/order.dart';
 import 'package:imat_app/model/imat/product.dart';
+import 'package:imat_app/util/category_names.dart';
 import 'package:imat_app/model/imat/product_detail.dart';
 import 'package:imat_app/model/imat/shopping_cart.dart';
 import 'package:imat_app/model/imat/shopping_item.dart';
@@ -77,10 +78,32 @@ class ImatDataHandler extends ChangeNotifier {
   List<Product> findProducts(String search) {
     final lowerSearch = search.toLowerCase();
 
-    return products.where((product) {
+    // Match by product name
+    final byName = products.where((product) {
       final name = product.name.toLowerCase();
       return name.contains(lowerSearch);
     }).toList();
+
+    // Match by category display name (e.g. searching "godis" should match SWEET)
+    final matchingCategories = orderedCategories.where((cat) {
+      final catName = getCategoryName(cat).toLowerCase();
+      return catName.contains(lowerSearch);
+    }).toList();
+
+    final byCategory = products
+        .where((product) => matchingCategories.contains(product.category))
+        .toList();
+
+    // Combine and deduplicate
+    final combined = <Product>[];
+    for (final p in byName) {
+      combined.add(p);
+    }
+    for (final p in byCategory) {
+      if (!combined.any((c) => c.productId == p.productId)) combined.add(p);
+    }
+
+    return combined;
   }
 
   // Returnerar produkten med productId idNbr eller null
@@ -104,6 +127,16 @@ class ImatDataHandler extends ChangeNotifier {
   // Returnerar om product är markerad som favorit.
   bool isFavorite(Product product) {
     return _favorites[product.productId] != null;
+  }
+
+  // Returnerar hur många av produkten som finns i kundvagnen.
+  double shoppingCartAmount(Product product) {
+    for (final item in _shoppingCart.items) {
+      if (item.product.productId == product.productId) {
+        return item.amount;
+      }
+    }
+    return 0.0;
   }
 
   // 'Togglar' om product är favorit eller inte.
@@ -165,6 +198,68 @@ class ImatDataHandler extends ChangeNotifier {
     _user.password = user.password;
 
     String _ = await InternetHandler.setUser(_user);
+    notifyListeners();
+  }
+
+  // Load user-related data (customer, creditcard, shoppingcart, orders)
+  Future<void> loadUserData() async {
+    try {
+      var response = await InternetHandler.getUser();
+      if (response.isNotEmpty) {
+        var singleJson = jsonDecode(response);
+        _user = User.fromJson(singleJson);
+      }
+
+      response = await InternetHandler.getCustomer();
+      if (response.isNotEmpty) {
+        var singleJson = jsonDecode(response);
+        _customer = Customer.fromJson(singleJson);
+      }
+
+      response = await InternetHandler.getCreditCard();
+      if (response.isNotEmpty) {
+        var singleJson = jsonDecode(response);
+        _creditCard = CreditCard.fromJson(singleJson);
+      }
+
+      response = await InternetHandler.getShoppingCart();
+      if (response.isNotEmpty) {
+        var singleJson = jsonDecode(response);
+        _shoppingCart = ShoppingCart.fromJson(singleJson);
+      }
+
+      response = await InternetHandler.getOrders();
+      if (response.isNotEmpty) {
+        var jsonData = jsonDecode(response) as List;
+        _orders.clear();
+        _orders.addAll(jsonData.map((item) => Order.fromJson(item)).toList());
+      }
+
+      response = await InternetHandler.getExtras();
+      if (response.isNotEmpty) {
+        _extras = jsonDecode(response);
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('loadUserData error: $e');
+    }
+  }
+
+  // Convenience: log in by setting user on server and fetching profile data
+  Future<void> login(String userName, String password) async {
+    _user.userName = userName;
+    _user.password = password;
+    await InternetHandler.setUser(_user);
+    await loadUserData();
+  }
+
+  // Log out locally (does not call server)
+  void logout() {
+    _user = User('', '');
+    _customer = Customer('', '', '', '', '', '', '', '');
+    _creditCard = CreditCard('', '', 12, 25, '', 0);
+    _shoppingCart = ShoppingCart([]);
     notifyListeners();
   }
 
@@ -299,6 +394,17 @@ class ImatDataHandler extends ChangeNotifier {
     setShoppingCart();
   }
 
+  // Lägger till alla items från en order i kundvagnen utan att rensa något.
+  // Uppdaterar kundvagnen på servern en gång efter att alla items lagts till.
+  Future<void> addOrderToShoppingCart(Order order) async {
+    for (final item in order.items) {
+      _shoppingCart.addItem(ShoppingItem(item.product, amount: item.amount));
+    }
+
+    await InternetHandler.setShoppingCart(_shoppingCart);
+    notifyListeners();
+  }
+
   double shoppingCartTotal() {
     double total = 0;
 
@@ -315,7 +421,7 @@ class ImatDataHandler extends ChangeNotifier {
     notifyListeners();
   }
 
-  void placeOrder() async {
+  Future<void> placeOrder() async {
     await InternetHandler.placeOrder();
     _shoppingCart.clear();
     notifyListeners();
@@ -323,12 +429,20 @@ class ImatDataHandler extends ChangeNotifier {
     // Reload orders
     var response = await InternetHandler.getOrders();
 
-    //print('Orders $response');
-    var jsonData = jsonDecode(response) as List;
+    if (response.isEmpty) {
+      debugPrint('placeOrder: empty response from getOrders');
+      return;
+    }
 
-    _orders.clear();
-    _orders.addAll(jsonData.map((item) => Order.fromJson(item)).toList());
-    notifyListeners();
+    try {
+      var jsonData = jsonDecode(response) as List;
+
+      _orders.clear();
+      _orders.addAll(jsonData.map((item) => Order.fromJson(item)).toList());
+      notifyListeners();
+    } catch (e) {
+      debugPrint('placeOrder decode error: $e');
+    }
   }
 
   void reset() async {

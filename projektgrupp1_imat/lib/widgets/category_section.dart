@@ -39,7 +39,7 @@ class CategorySectionWidget extends StatelessWidget {
                   style: const TextStyle(
                       fontSize: 24, fontWeight: FontWeight.bold)),
               TextButton(
-                onPressed: () => _onSeeAllPressed(products),
+                onPressed: () => _onSeeAllPressed(context, products),
                 child: Text('Till all $title'),
               ),
             ],
@@ -60,7 +60,14 @@ class CategorySectionWidget extends StatelessWidget {
     );
   }
 
-  void _onSeeAllPressed(List<Product> products) {
+  void _onSeeAllPressed(BuildContext context, List<Product> products) {
     iMat.selectSelection(products);
+    // Navigate to category view showing all products in this category
+    final categoryName = category.toString().split('.').last;
+    final encodedTitle = Uri.encodeComponent(title);
+    Navigator.pushNamed(
+      context,
+      '/category/$encodedTitle/$categoryName',
+    );
   }
 }
