@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/model/imat/product.dart';
 import 'package:imat_app/model/imat_data_handler.dart';
-import 'package:imat_app/widgets/product_card.dart';
+import 'package:imat_app/widgets/preview_product_strip.dart';
 
 class CategorySectionWidget extends StatelessWidget {
   final String title;
   final ProductCategory category;
   final ImatDataHandler iMat;
+
+  static const int previewItemCount = 5;
 
   const CategorySectionWidget({
     required this.title,
@@ -19,14 +21,14 @@ class CategorySectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final products = iMat.findProductsByCategory(category);
-    final preview = products.take(8).toList();
+    final preview = products.take(previewItemCount).toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.paddingLarge),
-      padding: const EdgeInsets.all(AppTheme.paddingSmall),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(
@@ -35,25 +37,18 @@ class CategorySectionWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(title, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
               TextButton(
                 onPressed: () => _onSeeAllPressed(context, products),
                 child: Text('Till all $title'),
               ),
             ],
           ),
-          SizedBox(
-            height: 280,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: preview.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(width: AppTheme.paddingSmall),
-              itemBuilder: (ctx, i) =>
-                  SizedBox(width: 200, child: ProductCard(preview[i], iMat)),
-            ),
+          const SizedBox(height: 12),
+          PreviewProductStrip(
+            products: preview,
+            iMat: iMat,
+            height: 525,
           ),
         ],
       ),
@@ -61,7 +56,6 @@ class CategorySectionWidget extends StatelessWidget {
   }
 
   void _onSeeAllPressed(BuildContext context, List<Product> products) {
-    iMat.selectSelection(products);
     // Navigate to category view showing all products in this category
     final categoryName = category.toString().split('.').last;
     final encodedTitle = Uri.encodeComponent(title);

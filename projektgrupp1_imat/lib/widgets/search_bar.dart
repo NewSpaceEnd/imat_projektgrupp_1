@@ -4,8 +4,15 @@ import 'package:imat_app/model/imat_data_handler.dart';
 
 class SearchBarWidget extends StatefulWidget {
   final ImatDataHandler iMat;
+  final EdgeInsetsGeometry padding;
+  final ValueChanged<String>? onSearchSubmitted;
 
-  const SearchBarWidget({required this.iMat, super.key});
+  const SearchBarWidget({
+    required this.iMat,
+    this.padding = const EdgeInsets.symmetric(vertical: AppTheme.paddingSmall),
+    this.onSearchSubmitted,
+    super.key,
+  });
 
   @override
   State<SearchBarWidget> createState() => _SearchBarWidgetState();
@@ -13,20 +20,22 @@ class SearchBarWidget extends StatefulWidget {
 
 class _SearchBarWidgetState extends State<SearchBarWidget> {
   late TextEditingController _controller;
+  late VoidCallback _controllerListener;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController();
+    _controller = TextEditingController(text: widget.iMat.searchQuery);
     // Rebuild when controller text changes to show/hide clear button
-    _controller.addListener(() => setState(() {}));
+    _controllerListener = () => setState(() {});
+    _controller.addListener(_controllerListener);
     // Clear text when iMat selection resets to all products
     widget.iMat.addListener(_onImatChanged);
   }
 
   @override
   void dispose() {
-    _controller.removeListener(() {});
+    _controller.removeListener(_controllerListener);
     widget.iMat.removeListener(_onImatChanged);
     _controller.dispose();
     super.dispose();
@@ -35,7 +44,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.paddingSmall),
+      padding: widget.padding,
       child: TextField(
         controller: _controller,
         decoration: InputDecoration(
@@ -52,17 +61,31 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                   icon: const Icon(Icons.clear),
                   onPressed: () {
                     _controller.clear();
-                    widget.iMat.selectAllProducts();
+                    widget.iMat.searchProducts('');
                   },
                 )
               : null,
         ),
         onChanged: (query) => _onSearchChanged(query),
+        onSubmitted: (query) {
+          _onSearchChanged(query);
+          if (query.trim().isNotEmpty) {
+            widget.onSearchSubmitted?.call(query);
+          }
+        },
       ),
     );
   }
 
   void _onImatChanged() {
+    final searchQuery = widget.iMat.searchQuery;
+
+    if (_controller.text != searchQuery) {
+      _controller.text = searchQuery;
+      _controller.selection = TextSelection.collapsed(offset: searchQuery.length);
+      return;
+    }
+
     // If selection was reset to all products, clear the search text
     if (widget.iMat.selectProducts.length == widget.iMat.products.length && _controller.text.isNotEmpty) {
       _controller.clear();
@@ -70,11 +93,6 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   }
 
   void _onSearchChanged(String query) {
-    if (query.isEmpty) {
-      widget.iMat.selectAllProducts();
-    } else {
-      final results = widget.iMat.findProducts(query);
-      widget.iMat.selectSelection(results);
-    }
+    widget.iMat.searchProducts(query);
   }
 }

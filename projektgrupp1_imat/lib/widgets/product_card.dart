@@ -5,6 +5,7 @@ import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/model/imat/shopping_item.dart';
 import 'package:imat_app/widgets/cart_quantity_controls.dart';
 import 'package:imat_app/widgets/product_detail_dialog.dart';
+import 'package:imat_app/widgets/primary_action_button.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -50,8 +51,8 @@ class _ProductCardState extends State<ProductCard> {
         }
 
         return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
@@ -59,69 +60,118 @@ class _ProductCardState extends State<ProductCard> {
                 child: InkWell(
                   onTap: () => _showProductDetails(context),
                   child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.paddingSmall),
+                    padding: const EdgeInsets.all(12),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Stack(
+                        // Top row: origin left, favorite top-right
+                        Row(
                           children: [
-                            Align(
-                              alignment: Alignment.centerLeft,
+                            Expanded(
                               child: Text(
                                 widget.iMat.getDetail(widget.product)?.origin ?? '',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                style: const TextStyle(fontSize: 13, color: Colors.grey),
                               ),
                             ),
-                            Align(
-                              alignment: Alignment.topRight,
-                              child: IconButton(
-                                visualDensity: VisualDensity.compact,
-                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                padding: EdgeInsets.zero,
-                                icon: Icon(
-                                  widget.iMat.isFavorite(widget.product)
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: widget.iMat.isFavorite(widget.product) ? Colors.red : Colors.grey,
-                                ),
-                                onPressed: () => widget.iMat.toggleFavorite(widget.product),
-                                tooltip: widget.iMat.isFavorite(widget.product)
-                                    ? 'Ta bort favorit'
-                                    : 'Lägg till favorit',
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
+                                widget.iMat.isFavorite(widget.product) ? Icons.favorite : Icons.favorite_border,
+                                color: widget.iMat.isFavorite(widget.product) ? Colors.red : Colors.grey,
                               ),
+                              onPressed: () => widget.iMat.toggleFavorite(widget.product),
+                              tooltip: widget.iMat.isFavorite(widget.product) ? 'Ta bort favorit' : 'Lägg till favorit',
                             ),
                           ],
                         ),
+
+                        // Image (centered area)
                         Expanded(child: widget.iMat.getImage(widget.product)),
-                        const SizedBox(height: AppTheme.paddingSmall),
-                        const SizedBox(height: 6),
+
+                        const SizedBox(height: 8),
+
+                        // Name
                         Text(
                           widget.product.name,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
+
                         const SizedBox(height: 6),
-                        Text(
-                          '${widget.product.unit} • ${widget.product.price.toStringAsFixed(2)} kr',
-                          style: const TextStyle(fontSize: 14),
+
+                        // Brand / unit on left, unit-price on right
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.iMat.getDetail(widget.product)?.brand.isNotEmpty == true
+                                    ? widget.iMat.getDetail(widget.product)!.brand
+                                    : widget.product.unit,
+                                style: const TextStyle(fontSize: 14, color: Colors.black54),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  widget.product.unit,
+                                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${(widget.product.price).toStringAsFixed(2)} kr',
+                                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Price row with eco badge
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${widget.product.price.toStringAsFixed(2)} kr',
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                            if (widget.product.isEcological)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFB6D42C),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'eko',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              )
+                            else
+                              const SizedBox.shrink(),
+                          ],
                         ),
                       ],
                     ),
                   ),
                 ),
               ),
+
+              // Add button (full width)
               Padding(
-                padding: const EdgeInsets.all(AppTheme.paddingSmall),
-                child: CartQuantityControls(
-                  amountInCart: amountInCart,
-                  quantityController: _quantityController,
-                  quantityFocusNode: _quantityFocusNode,
-                  onAdd: () => widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0)),
-                  onRemove: () => widget.iMat.shoppingCartUpdate(
-                    ShoppingItem(widget.product, amount: 1.0),
-                    delta: -1.0,
-                  ),
-                  onCommitAmount: _commitQuantity,
-                  onBeginEditing: _beginEditingQuantity,
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: PrimaryActionButton(
+                  onPressed: () => widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0)),
+                  label: 'Lägg till i varukorg',
                 ),
               ),
             ],
@@ -157,19 +207,10 @@ class _ProductCardState extends State<ProductCard> {
       return;
     }
 
-    final delta = targetAmount - currentAmount;
-    if (delta > 0) {
-      for (var i = 0; i < delta; i++) {
-        widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0));
-      }
-    } else {
-      for (var i = 0; i < -delta; i++) {
-        widget.iMat.shoppingCartUpdate(
-          ShoppingItem(widget.product, amount: 1.0),
-          delta: -1.0,
-        );
-      }
-    }
+    widget.iMat.shoppingCartSetAmount(
+      ShoppingItem(widget.product, amount: 1.0),
+      targetAmount.toDouble(),
+    );
 
     _quantityController.text = targetAmount.toString();
   }

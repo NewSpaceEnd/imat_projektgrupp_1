@@ -10,6 +10,7 @@ import 'package:imat_app/model/imat/order.dart';
 import 'package:imat_app/model/imat/product.dart';
 import 'package:imat_app/util/category_names.dart';
 import 'package:imat_app/model/imat/product_detail.dart';
+import 'package:imat_app/model/imat/saved_shopping_cart.dart';
 import 'package:imat_app/model/imat/shopping_cart.dart';
 import 'package:imat_app/model/imat/shopping_item.dart';
 import 'package:imat_app/model/imat/user.dart';
@@ -29,6 +30,8 @@ class ImatDataHandler extends ChangeNotifier {
   // Access a list of all previous orders
   List<Order> get orders => _orders;
 
+  List<SavedShoppingCart> get savedShoppingCarts => List.unmodifiable(_savedShoppingCarts);
+
   //
   // Handle product selections
   //
@@ -36,12 +39,15 @@ class ImatDataHandler extends ChangeNotifier {
   // Returnernar de produkter som är valda
   List<Product> get selectProducts => _selectProducts;
 
+  String get searchQuery => _searchQuery;
+
   // Nollställer urvalet till alla produkter.
   // Anropar notifyListeners så att GUI:t får
   // veta att urvalet ändrats.
   void selectAllProducts() {
     _selectProducts.clear();
     _selectProducts.addAll(_products);
+    _searchQuery = '';
     notifyListeners();
   }
 
@@ -63,6 +69,15 @@ class ImatDataHandler extends ChangeNotifier {
     _selectProducts.clear();
     _selectProducts.addAll(selection);
     notifyListeners();
+  }
+
+  void searchProducts(String query) {
+    _searchQuery = query;
+    if (query.isEmpty) {
+      selectAllProducts();
+    } else {
+      selectSelection(findProducts(query));
+    }
   }
 
   // Returnerar alla produkter som hör till category.
@@ -260,6 +275,7 @@ class ImatDataHandler extends ChangeNotifier {
     _customer = Customer('', '', '', '', '', '', '', '');
     _creditCard = CreditCard('', '', 12, 25, '', 0);
     _shoppingCart = ShoppingCart([]);
+    _savedShoppingCarts.clear();
     notifyListeners();
   }
 
@@ -311,6 +327,66 @@ class ImatDataHandler extends ChangeNotifier {
     notifyListeners();
   }
 
+  void saveShoppingCart(String name) {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty || _shoppingCart.items.isEmpty) {
+      return;
+    }
+
+    _savedShoppingCarts.removeWhere((cart) => cart.name.toLowerCase() == trimmedName.toLowerCase());
+    _savedShoppingCarts.insert(
+      0,
+      SavedShoppingCart(
+        name: trimmedName,
+        savedAt: DateTime.now(),
+        cart: ShoppingCart(
+          _shoppingCart.items
+              .map((item) => ShoppingItem(item.product, amount: item.amount))
+              .toList(),
+        ),
+      ),
+    );
+
+    _persistSavedShoppingCarts();
+    notifyListeners();
+  }
+
+  void _persistSavedShoppingCarts() {
+    _extras[_savedShoppingCartsKey] = _savedShoppingCarts.map((cart) => cart.toJson()).toList();
+    setExtras(_extras);
+  }
+
+  void _loadSavedShoppingCartsFromExtras() {
+    _savedShoppingCarts.clear();
+
+    final raw = _extras[_savedShoppingCartsKey];
+    if (raw is! List) {
+      return;
+    }
+
+    for (final entry in raw) {
+      if (entry is Map<String, dynamic>) {
+        _savedShoppingCarts.add(SavedShoppingCart.fromJson(entry));
+      } else if (entry is Map) {
+        _savedShoppingCarts.add(SavedShoppingCart.fromJson(Map<String, dynamic>.from(entry)));
+      }
+    }
+  }
+
+  void removeSavedShoppingCart(String name) {
+    _savedShoppingCarts.removeWhere((cart) => cart.name == name);
+    _persistSavedShoppingCarts();
+    notifyListeners();
+  }
+
+  void addSavedShoppingCartToShoppingCart(SavedShoppingCart savedCart) {
+    for (final item in savedCart.cart.items) {
+      _shoppingCart.addItem(ShoppingItem(item.product, amount: item.amount));
+    }
+
+    setShoppingCart();
+  }
+
   // Returnerar bilden som hör till produkten p.
   // Om bilden inte finns cachad returneras en tillfällig bild.
   // När bilden har hämtats meddelas gränssnittet och bilden visas
@@ -360,6 +436,13 @@ class ImatDataHandler extends ChangeNotifier {
     _shoppingCart.addItem(item);
 
     // Update and notify listeners
+    setShoppingCart();
+  }
+
+  // Sätter exakt mängd av ett item i kundvagnen med en enda serveruppdatering.
+  void shoppingCartSetAmount(ShoppingItem item, double amount) {
+    _shoppingCart.setItemAmount(item, amount);
+
     setShoppingCart();
   }
 
@@ -475,6 +558,7 @@ class ImatDataHandler extends ChangeNotifier {
 
     response = await InternetHandler.getExtras();
     _extras = jsonDecode(response);
+    _loadSavedShoppingCartsFromExtras();
 
     notifyListeners();
   }
@@ -503,6 +587,7 @@ class ImatDataHandler extends ChangeNotifier {
   final Map<int, Product> _favorites = {};
 
   User _user = User('', '');
+  String _searchQuery = '';
 
   Customer _customer = Customer('', '', '', '', '', '', '', '');
 
@@ -513,6 +598,10 @@ class ImatDataHandler extends ChangeNotifier {
   final List<Order> _orders = [];
 
   Map<String, dynamic> _extras = {};
+
+  final List<SavedShoppingCart> _savedShoppingCarts = [];
+
+  static const _savedShoppingCartsKey = 'savedShoppingCarts';
 
   //final Map<int, Image> _imageCache = HashMap();
 

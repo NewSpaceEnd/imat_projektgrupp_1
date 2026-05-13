@@ -3,6 +3,7 @@ import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/model/imat/product.dart';
 import 'package:imat_app/pages/main_view.dart';
+import 'package:imat_app/pages/favorites_view.dart';
 import 'package:imat_app/pages/checkout.dart';
 import 'package:imat_app/pages/shopping_cart.dart';
 import 'package:imat_app/pages/user_page.dart';
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
         '/user': (_) => const UserPage(),
         '/cart': (_) => const ShoppingCartPage(),
         '/checkout': (_) => const CheckoutPage(),
+        '/favorites': (_) => const FavoritesPage(),
         '/order-confirmation': (_) => const OrderConfirmationPage(),
         '/login': (_) => const LoginPage(),
         '/register': (_) => const RegisterPage(),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:imat_app/widgets/primary_action_button.dart';
 
 class CartQuantityControls extends StatelessWidget {
   final double amountInCart;
@@ -25,18 +26,10 @@ class CartQuantityControls extends StatelessWidget {
     if (amountInCart <= 0) {
       return SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6C3BD6),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-          ),
+        child: PrimaryActionButton(
           onPressed: onAdd,
-          icon: const Icon(Icons.shopping_cart, color: Colors.white),
-          label: const Text(
-            'Lägg till i varukorg',
-            style: TextStyle(color: Colors.white),
-          ),
+          icon: Icons.shopping_cart,
+          label: 'Lägg till i varukorg',
         ),
       );
     }

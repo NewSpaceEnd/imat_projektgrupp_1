@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:imat_app/app_theme.dart';
-import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:imat_app/model/imat/credit_card.dart';
 import 'package:imat_app/model/imat/customer.dart';
 import 'package:imat_app/model/imat/shopping_item.dart';
 import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/model/internet_handler.dart';
+import 'package:imat_app/widgets/primary_action_button.dart';
+import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:provider/provider.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -19,6 +20,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 	static const double serviceFee = 25.0;
 
 	final _formKey = GlobalKey<FormState>();
+	final _savedCartName = TextEditingController();
 
 	// Customer controllers
 	late TextEditingController _firstName;
@@ -71,7 +73,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
 		_validMonth.dispose();
 		_validYear.dispose();
 		_verification.dispose();
+		_savedCartName.dispose();
 		super.dispose();
+	}
+
+	void _saveCurrentCart() {
+		final iMat = Provider.of<ImatDataHandler>(context, listen: false);
+		if (iMat.getShoppingCart().items.isEmpty) {
+			ScaffoldMessenger.of(context).showSnackBar(
+				const SnackBar(content: Text('Det finns ingen varukorg att spara.')),
+			);
+			return;
+		}
+
+		final name = _savedCartName.text.trim().isEmpty ? 'Varukorg' : _savedCartName.text.trim();
+		iMat.saveShoppingCart(name);
+		ScaffoldMessenger.of(context).showSnackBar(
+			SnackBar(content: Text('Varukorgen "$name" sparades.')),
+		);
 	}
 
 	@override
@@ -173,9 +192,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
 									textAlign: TextAlign.center,
 								),
 								const SizedBox(height: 12),
-								ElevatedButton(
-									onPressed: () => Navigator.pushReplacementNamed(context, '/cart'),
-									child: const Text('Till varukorgen'),
+								SizedBox(
+									width: double.infinity,
+									child: PrimaryActionButton(
+										onPressed: () => Navigator.pushReplacementNamed(context, '/cart'),
+										label: 'Till varukorgen',
+									),
 								),
 							],
 						),
@@ -285,10 +307,44 @@ class _CheckoutPageState extends State<CheckoutPage> {
 								),
 							),
 							const SizedBox(height: 12),
-							ElevatedButton.icon(
-								onPressed: cart.items.isEmpty ? null : _placeOrder,
-								icon: const Icon(Icons.check_circle_outline),
-								label: const Text('Slutför köp'),
+						Card(
+							child: Padding(
+								padding: const EdgeInsets.all(12),
+								child: Column(
+									crossAxisAlignment: CrossAxisAlignment.stretch,
+									children: [
+										const Text(
+											'Spara varukorg',
+											style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+										),
+										const SizedBox(height: 8),
+										TextFormField(
+											controller: _savedCartName,
+											decoration: const InputDecoration(
+												labelText: 'Namn på varukorgen (valfritt)',
+												hintText: 'T.ex. Veckohandling',
+											),
+										),
+										const SizedBox(height: 12),
+										SizedBox(
+											width: double.infinity,
+											child: PrimaryActionButton(
+												onPressed: _saveCurrentCart,
+												label: 'Spara varukorg',
+											),
+										),
+									],
+								),
+							),
+						),
+						const SizedBox(height: 12),
+							SizedBox(
+								width: double.infinity,
+								child: PrimaryActionButton(
+									onPressed: cart.items.isEmpty ? null : _placeOrder,
+									icon: Icons.check_circle_outline,
+									label: 'Slutför köp',
+								),
 							),
 						],
 					),

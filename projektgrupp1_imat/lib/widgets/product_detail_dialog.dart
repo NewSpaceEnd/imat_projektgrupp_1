@@ -167,16 +167,10 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
       return;
     }
 
-    final delta = targetAmount - currentAmount;
-    if (delta > 0) {
-      for (var i = 0; i < delta; i++) {
-        widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0));
-      }
-    } else {
-      for (var i = 0; i < -delta; i++) {
-        widget.iMat.shoppingCartUpdate(ShoppingItem(widget.product, amount: 1.0), delta: -1.0);
-      }
-    }
+    widget.iMat.shoppingCartSetAmount(
+      ShoppingItem(widget.product, amount: 1.0),
+      targetAmount.toDouble(),
+    );
 
     _quantityController.text = targetAmount.toString();
   }

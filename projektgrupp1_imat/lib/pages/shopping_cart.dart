@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/model/imat/shopping_item.dart';
-import 'package:provider/provider.dart';
+import 'package:imat_app/widgets/primary_action_button.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
+import 'package:provider/provider.dart';
 
 class ShoppingCartPage extends StatelessWidget {
 	static const double serviceFee = 25.0;
@@ -58,12 +59,15 @@ class ShoppingCartPage extends StatelessWidget {
 										const Divider(),
 										Text('Att betala: ${totalWithService.toStringAsFixed(2)} kr'),
 										const SizedBox(height: 16),
-										ElevatedButton.icon(
-											onPressed: cart.items.isEmpty
+										SizedBox(
+											width: double.infinity,
+											child: PrimaryActionButton(
+												onPressed: cart.items.isEmpty
 													? null
 													: () => Navigator.pushNamed(context, '/checkout'),
-											icon: const Icon(Icons.payment),
-											label: const Text('Gå till kassan'),
+												icon: Icons.payment,
+												label: 'Gå till kassan',
+											),
 										),
 									],
 								),

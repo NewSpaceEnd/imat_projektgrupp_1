@@ -48,6 +48,16 @@ class ShoppingCart {
     }
   }
 
+  void setItemAmount(ShoppingItem sci, double amount) {
+    final pId = sci.product.productId;
+
+    items.removeWhere((item) => item.product.productId == pId);
+
+    if (amount > 0.0) {
+      items.add(ShoppingItem(sci.product, amount: amount));
+    }
+  }
+
   // Changes the amount of sci with delta.
   // If the item does not exist the this is the same
   // as addItem.
