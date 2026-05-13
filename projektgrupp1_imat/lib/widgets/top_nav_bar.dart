@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:imat_app/pages/main_view.dart';
 
 class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
+  static const double serviceFee = 25.0;
 
   const TopNavBar({this.title, super.key});
 
@@ -70,7 +70,16 @@ class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
           child: IconButton(
             tooltip: 'Kassa',
             icon: const Icon(Icons.receipt_long_outlined, size: 50),
-            onPressed: () => Navigator.pushNamed(context, '/checkout'),
+            onPressed: () {
+              final iMat = Provider.of<ImatDataHandler>(context, listen: false);
+              if (iMat.getShoppingCart().items.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Lägg till minst en vara innan du går till kassan.')),
+                );
+                return;
+              }
+              Navigator.pushNamed(context, '/checkout');
+            },
           ),
         ),
       ],

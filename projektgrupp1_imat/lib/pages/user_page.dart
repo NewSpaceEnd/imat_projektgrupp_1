@@ -157,7 +157,7 @@ class UserPage extends StatelessWidget {
 										separatorBuilder: (_, __) => const SizedBox(height: 12),
 										itemBuilder: (context, index) {
 											final order = orders[index];
-											return _OrderCard(
+											return _OrderExpansionCard(
 												order: order,
 												onBuyAgain: () async {
 													await context.read<ImatDataHandler>().addOrderToShoppingCart(order);
@@ -167,6 +167,9 @@ class UserPage extends StatelessWidget {
 														const SnackBar(content: Text('Varorna lades till i kundvagnen')),
 													);
 												},
+												onPrint: () => _showOrderAction(context, 'Utskrift', 'Det här är ett exempel på att skicka ordern till skrivaren.'),
+												onEmail: () => _showOrderAction(context, 'E-post', 'Det här är ett exempel på att skicka ordern via e-post.'),
+												onFax: () => _showOrderAction(context, 'Fax', 'Det här är ett exempel på att faxa orderkvitto.'),
 											);
 										},
 									),
@@ -181,73 +184,113 @@ class UserPage extends StatelessWidget {
 			},
 		);
 	}
+
+	void _showOrderAction(BuildContext context, String title, String message) {
+		showDialog<void>(
+			context: context,
+			builder: (context) => AlertDialog(
+				title: Text(title),
+				content: Text(message),
+				actions: [
+					TextButton(
+						onPressed: () => Navigator.of(context).pop(),
+						child: const Text('OK'),
+					),
+				],
+			),
+		);
+	}
 }
 
-class _OrderCard extends StatelessWidget {
+class _OrderExpansionCard extends StatelessWidget {
 	final Order order;
+	final VoidCallback onPrint;
+	final VoidCallback onEmail;
+	final VoidCallback onFax;
 	final VoidCallback onBuyAgain;
 
-	const _OrderCard({
+	const _OrderExpansionCard({
 		required this.order,
+		required this.onPrint,
+		required this.onEmail,
+		required this.onFax,
 		required this.onBuyAgain,
 	});
 
 	@override
 	Widget build(BuildContext context) {
-
 		return Card(
-			child: Padding(
-				padding: const EdgeInsets.all(12),
-				child: Column(
-					crossAxisAlignment: CrossAxisAlignment.start,
-					children: [
-						Row(
-							mainAxisAlignment: MainAxisAlignment.spaceBetween,
-							children: [
-								Text(
-									'Order ${order.orderNumber}',
-									style: const TextStyle(fontWeight: FontWeight.bold),
-								),
-								Text(formatOrderDate(order.date)),
-							],
-						),
-						const SizedBox(height: 8),
-						...order.items.map(
-							(item) => Padding(
-								padding: const EdgeInsets.only(bottom: 6),
-								child: Row(
-									mainAxisAlignment: MainAxisAlignment.spaceBetween,
-									children: [
-										Expanded(
-											child: Text(
-												'${item.product.name} x${item.amount.toStringAsFixed(0)}',
-												overflow: TextOverflow.ellipsis,
-											),
+			child: ExpansionTile(
+				title: Text('Order ${order.orderNumber}'),
+				subtitle: Text('${formatOrderDate(order.date)} • ${order.items.length} varor • ${order.getTotal().toStringAsFixed(2)} kr'),
+				childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+				children: [
+					const Divider(height: 1),
+					const SizedBox(height: 12),
+					...order.items.map(
+						(item) => Padding(
+							padding: const EdgeInsets.only(bottom: 10),
+							child: Row(
+								children: [
+									SizedBox(
+										width: 56,
+										height: 56,
+										child: ClipRRect(
+											borderRadius: BorderRadius.circular(10),
+											child: context.read<ImatDataHandler>().getImage(item.product),
 										),
-										Text('${item.total.toStringAsFixed(2)} kr'),
-									],
-								),
+									),
+									const SizedBox(width: 12),
+									Expanded(
+										child: Column(
+											crossAxisAlignment: CrossAxisAlignment.start,
+											children: [
+												Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+												Text('Antal: ${item.amount.toStringAsFixed(0)} • Pris: ${item.product.price.toStringAsFixed(2)} kr'),
+											],
+										),
+									),
+									Text('${item.total.toStringAsFixed(2)} kr'),
+								],
 							),
 						),
-						const Divider(),
-						Row(
-							mainAxisAlignment: MainAxisAlignment.spaceBetween,
-							children: [
-								const Text('Totalt', style: TextStyle(fontWeight: FontWeight.bold)),
-								Text('${order.getTotal().toStringAsFixed(2)} kr', style: const TextStyle(fontWeight: FontWeight.bold)),
-							],
-						),
-						const SizedBox(height: 12),
-						SizedBox(
-							width: double.infinity,
-							child: OutlinedButton.icon(
+					),
+					const Divider(),
+					Row(
+						mainAxisAlignment: MainAxisAlignment.spaceBetween,
+						children: [
+							const Text('Totalt', style: TextStyle(fontWeight: FontWeight.bold)),
+							Text('${order.getTotal().toStringAsFixed(2)} kr', style: const TextStyle(fontWeight: FontWeight.bold)),
+						],
+					),
+					const SizedBox(height: 12),
+					Wrap(
+						spacing: 10,
+						runSpacing: 10,
+						children: [
+							ElevatedButton.icon(
+								onPressed: onPrint,
+								icon: const Icon(Icons.print),
+								label: const Text('Skriv ut'),
+							),
+							OutlinedButton.icon(
+								onPressed: onEmail,
+								icon: const Icon(Icons.email_outlined),
+								label: const Text('Maila'),
+							),
+							OutlinedButton.icon(
+								onPressed: onFax,
+								icon: const Icon(Icons.fax),
+								label: const Text('Faxa'),
+							),
+							OutlinedButton.icon(
 								onPressed: onBuyAgain,
 								icon: const Icon(Icons.add_shopping_cart_outlined),
 								label: const Text('Köp igen'),
 							),
-						),
-					],
-				),
+						],
+					),
+				],
 			),
 		);
 	}

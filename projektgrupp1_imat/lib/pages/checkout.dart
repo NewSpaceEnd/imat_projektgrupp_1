@@ -16,6 +16,8 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+	static const double serviceFee = 25.0;
+
 	final _formKey = GlobalKey<FormState>();
 
 	// Customer controllers
@@ -101,6 +103,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
 		if (!_formKey.currentState!.validate()) return;
 
 		final iMat = Provider.of<ImatDataHandler>(context, listen: false);
+		if (iMat.getShoppingCart().items.isEmpty) {
+			ScaffoldMessenger.of(context).showSnackBar(
+				const SnackBar(content: Text('Lägg till minst en vara innan du slutför köp.')),
+			);
+			return;
+		}
 
 		final customer = Customer(
 			_firstName.text,
@@ -146,6 +154,35 @@ class _CheckoutPageState extends State<CheckoutPage> {
 	Widget build(BuildContext context) {
 		final iMat = Provider.of<ImatDataHandler>(context);
 		final cart = iMat.getShoppingCart();
+		final cartTotal = iMat.shoppingCartTotal();
+		final totalWithService = cartTotal + (cart.items.isEmpty ? 0 : serviceFee);
+
+		if (cart.items.isEmpty) {
+			return Scaffold(
+				appBar: TopNavBar(title: 'Kassa'),
+				body: Center(
+					child: Padding(
+						padding: const EdgeInsets.all(AppTheme.paddingSmall),
+						child: Column(
+							mainAxisSize: MainAxisSize.min,
+							children: [
+								const Icon(Icons.shopping_cart_outlined, size: 72, color: Colors.grey),
+								const SizedBox(height: 12),
+								const Text(
+									'Lägg till minst en vara innan du går till kassan.',
+									textAlign: TextAlign.center,
+								),
+								const SizedBox(height: 12),
+								ElevatedButton(
+									onPressed: () => Navigator.pushReplacementNamed(context, '/cart'),
+									child: const Text('Till varukorgen'),
+								),
+							],
+						),
+					),
+				),
+			);
+		}
 
 		return Scaffold(
 			appBar: TopNavBar(title: 'Kassa'),
@@ -164,7 +201,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 									child: ListTile(
 										leading: SizedBox(width: 56, height: 56, child: iMat.getImage(item.product)),
 										title: Text(item.product.name),
-										subtitle: Text('${item.amount} ${item.product.unit}'),
+										subtitle: Text('Antal: ${item.amount.toStringAsFixed(1)}'),
 										trailing: Text('${item.total.toStringAsFixed(2)} kr'),
 									),
 								);
@@ -217,18 +254,39 @@ class _CheckoutPageState extends State<CheckoutPage> {
 							Card(
 								child: Padding(
 									padding: const EdgeInsets.all(12),
-									child: Row(
-										mainAxisAlignment: MainAxisAlignment.spaceBetween,
+									child: Column(
+										crossAxisAlignment: CrossAxisAlignment.stretch,
 										children: [
-											const Text('Totalt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-											Text('${iMat.shoppingCartTotal().toStringAsFixed(2)} kr', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+											Row(
+												mainAxisAlignment: MainAxisAlignment.spaceBetween,
+												children: [
+													const Text('Varor totalt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+													Text('${cartTotal.toStringAsFixed(2)} kr', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+												],
+											),
+											const SizedBox(height: 8),
+											Row(
+												mainAxisAlignment: MainAxisAlignment.spaceBetween,
+												children: [
+													const Text('Serviceavgift', style: TextStyle(fontSize: 14)),
+													Text('${(cart.items.isEmpty ? 0 : serviceFee).toStringAsFixed(2)} kr', style: const TextStyle(fontSize: 14)),
+												],
+											),
+											const Divider(height: 18),
+											Row(
+												mainAxisAlignment: MainAxisAlignment.spaceBetween,
+												children: [
+													const Text('Att betala', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+													Text('${totalWithService.toStringAsFixed(2)} kr', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+												],
+											),
 										],
 									),
 								),
 							),
 							const SizedBox(height: 12),
 							ElevatedButton.icon(
-								onPressed: _placeOrder,
+								onPressed: cart.items.isEmpty ? null : _placeOrder,
 								icon: const Icon(Icons.check_circle_outline),
 								label: const Text('Slutför köp'),
 							),

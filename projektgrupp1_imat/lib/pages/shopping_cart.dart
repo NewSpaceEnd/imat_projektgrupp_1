@@ -6,12 +6,16 @@ import 'package:provider/provider.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 
 class ShoppingCartPage extends StatelessWidget {
+	static const double serviceFee = 25.0;
+
 	const ShoppingCartPage({super.key});
 
 	@override
 	Widget build(BuildContext context) {
 		final iMat = context.watch<ImatDataHandler>();
 		final cart = iMat.getShoppingCart();
+		final cartTotal = iMat.shoppingCartTotal();
+		final totalWithService = cartTotal + (cart.items.isEmpty ? 0 : serviceFee);
 
 			    return Scaffold(
 				    appBar: TopNavBar(title: 'Varukorg'),
@@ -49,10 +53,15 @@ class ShoppingCartPage extends StatelessWidget {
 										),
 										const SizedBox(height: 8),
 										Text('Varor: ${cart.items.length}'),
-										Text('Totalt: ${iMat.shoppingCartTotal().toStringAsFixed(2)} kr'),
+										Text('Varor totalt: ${cartTotal.toStringAsFixed(2)} kr'),
+										Text('Serviceavgift: ${(cart.items.isEmpty ? 0 : serviceFee).toStringAsFixed(2)} kr'),
+										const Divider(),
+										Text('Att betala: ${totalWithService.toStringAsFixed(2)} kr'),
 										const SizedBox(height: 16),
 										ElevatedButton.icon(
-											onPressed: () => Navigator.pushNamed(context, '/checkout'),
+											onPressed: cart.items.isEmpty
+													? null
+													: () => Navigator.pushNamed(context, '/checkout'),
 											icon: const Icon(Icons.payment),
 											label: const Text('Gå till kassan'),
 										),
@@ -97,7 +106,7 @@ class _CartItem extends StatelessWidget {
 					),
 				),
 				title: Text(item.product.name),
-				subtitle: Text('${item.amount} ${item.product.unit}'),
+				subtitle: Text('Antal: ${item.amount.toStringAsFixed(1)}'),
 				trailing: SizedBox(
 					width: 140,
 					child: Row(
