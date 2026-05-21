@@ -4,6 +4,7 @@ import 'package:imat_app/widgets/shopping_cart_overlay.dart';
 import 'package:imat_app/widgets/search_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:imat_app/pages/main_view.dart';
+import 'package:imat_app/pages/search_results.dart';
 
 class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
@@ -43,22 +44,20 @@ class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
           ? SearchBarWidget(
               iMat: iMat,
               padding: EdgeInsets.zero,
-              onSearchSubmitted: isCategoryPage
-                  ? (_) {
-                      FocusScope.of(context).unfocus();
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const MainView()),
-                        (route) => false,
-                      );
-                    }
-                  : null,
+              onSearchSubmitted: (query) {
+                FocusScope.of(context).unfocus();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SearchResultsPage()),
+                );
+              },
             )
           : Text(title!),
+      // Always show the logo on the left. Logo tap resets selection and
+      // navigates back to main view (same behaviour as on the main page).
       leading: SizedBox(
         width: 120,
         child: InkWell(
           onTap: () {
-            // Reset selection/search and navigate to main page like a normal navigation
             FocusScope.of(context).unfocus();
             final iMat = Provider.of<ImatDataHandler>(context, listen: false);
             iMat.selectAllProducts();
@@ -98,18 +97,41 @@ class _ProfileCircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFD9CDF7),
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: const SizedBox(
-          width: 56,
-          height: 56,
-          child: Icon(Icons.person, size: 32, color: Color(0xFF2E2E34)),
+    final handler = Provider.of<ImatDataHandler>(context);
+    final isLoggedIn = handler.getUser().userName.isNotEmpty;
+    final userName = isLoggedIn ? handler.getUser().userName : 'Logga in';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Material(
+          color: const Color(0xFFD9CDF7),
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: isLoggedIn
+                ? onTap
+                : () => Navigator.pushNamed(context, '/login'),
+            child: const SizedBox(
+              width: 56,
+              height: 56,
+              child: Icon(Icons.person, size: 32, color: Color(0xFF2E2E34)),
+            ),
+          ),
         ),
-      ),
+        const SizedBox(height: 4),
+        SizedBox(
+          width: 70,
+          child: Text(
+            userName,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -3,7 +3,12 @@ import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/model/imat/product.dart';
 import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/widgets/preview_product_strip.dart';
+import 'package:imat_app/widgets/primary_action_button.dart';
 
+/// En sektion som visar en kategori med:
+/// - Rubrik för kategorin
+/// - En lila PrimaryActionButton med "Till all [kategori]"
+/// - En förhandsvisning av de första 5 produkterna i kategorin
 class CategorySectionWidget extends StatelessWidget {
   final String title;
   final ProductCategory category;
@@ -20,7 +25,9 @@ class CategorySectionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Hämta alla produkter i denna kategori
     final products = iMat.findProductsByCategory(category);
+    // Ta bara de första 5 för förhandsvisningen
     final preview = products.take(previewItemCount).toList();
 
     return Container(
@@ -34,17 +41,24 @@ class CategorySectionWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Rubrik med kategori-namn och "Till all" knapp
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Kategori-rubrik
               Text(title, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-              TextButton(
-                onPressed: () => _onSeeAllPressed(context, products),
-                child: Text('Till all $title'),
+              // Lila "Till all [kategori]" knapp som navigerar till full kategori-vy
+              SizedBox(
+                width: 200,
+                child: PrimaryActionButton(
+                  label: 'Till all $title',
+                  onPressed: () => _onSeeAllPressed(context, products),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
+          // Förhandsvisning av de första 5 produkterna i kategorin
           PreviewProductStrip(
             products: preview,
             iMat: iMat,
@@ -55,8 +69,9 @@ class CategorySectionWidget extends StatelessWidget {
     );
   }
 
+  /// Navigerar till full kategori-vy med alla produkter i denna kategori
   void _onSeeAllPressed(BuildContext context, List<Product> products) {
-    // Navigate to category view showing all products in this category
+    // Extract och URL-encode kategori-namn
     final categoryName = category.toString().split('.').last;
     final encodedTitle = Uri.encodeComponent(title);
     Navigator.pushNamed(

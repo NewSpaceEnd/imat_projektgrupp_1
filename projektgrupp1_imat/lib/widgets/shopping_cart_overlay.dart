@@ -27,16 +27,29 @@ Future<void> showShoppingCartOverlay(BuildContext context) {
       return Material(
         color: Colors.transparent,
         child: SafeArea(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: SlideTransition(
-              position: slide,
-              child: SizedBox(
-                width: panelWidth,
-                height: double.infinity,
-                child: const _ShoppingCartOverlayPanel(),
+          child: Stack(
+            children: [
+              // Fullskärms tryckbar yta bakom panelen - tänker "dismiss" när man klickar
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.of(dialogContext).pop(),
+                  child: Container(),
+                ),
               ),
-            ),
+              // Sidopanelen som glider in från höger
+              Align(
+                alignment: Alignment.centerRight,
+                child: SlideTransition(
+                  position: slide,
+                  child: SizedBox(
+                    width: panelWidth,
+                    height: double.infinity,
+                    child: const _ShoppingCartOverlayPanel(),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -45,6 +58,11 @@ Future<void> showShoppingCartOverlay(BuildContext context) {
 }
 
 class _ShoppingCartOverlayPanel extends StatelessWidget {
+  /// Panelen inuti overlay som visar:
+  /// - Rubrik med antal varor
+  /// - Lista av varor i varukorgen
+  /// - Totalbeläpp med serviceavgift
+  /// - Knappar för "Varukorg" och "Till kassan"
   const _ShoppingCartOverlayPanel();
 
   @override
@@ -101,6 +119,7 @@ class _ShoppingCartOverlayPanel extends StatelessWidget {
                     },
                   ),
           ),
+          // Totalsumma och knapprar för navigation
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Card(
@@ -111,6 +130,7 @@ class _ShoppingCartOverlayPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Varor totalt
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -119,6 +139,7 @@ class _ShoppingCartOverlayPanel extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 6),
+                    // Serviceavgift (25 kr om varukorgen inte är tom)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -127,6 +148,7 @@ class _ShoppingCartOverlayPanel extends StatelessWidget {
                       ],
                     ),
                     const Divider(height: 18),
+                    // Total belopp att betala
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -141,6 +163,7 @@ class _ShoppingCartOverlayPanel extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 14),
+                    // Knappar för att gå till varukorg-sidan eller kassan
                     SizedBox(
                       width: double.infinity,
                       child: Row(

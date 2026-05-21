@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -16,6 +17,18 @@ import 'package:imat_app/model/imat/shopping_item.dart';
 import 'package:imat_app/model/imat/user.dart';
 import 'package:imat_app/model/internet_handler.dart';
 
+/// Centralt data-management för iMat-appen.
+/// Ansvarar för:
+/// - Hantering av produktkatalog, kategorier och sökfiltrering
+/// - Kundinformation (namn, email, telefon, adress, kreditkort)
+/// - Kundvagn med items och totalpris
+/// - Sparade varukorgar (server-only, lagras i server extras)
+/// - Köphistorik/ordrar (server-only)
+/// - Favoriter (server-only, lagras i server extras)
+/// - Inloggning/autentisering
+///
+/// Persistence: Använder InternetHandler för server-kommunikation.
+/// Sparade varukorgar, ordrar och favoriter lagras INTE lokalt medan inloggad.
 class ImatDataHandler extends ChangeNotifier {
   // Initializes the IMatDataHandler
   ImatDataHandler() {
@@ -163,18 +176,19 @@ class ImatDataHandler extends ChangeNotifier {
 
     if (_favorites.containsKey(pid)) {
       _favorites.remove(pid);
-      _removeFavorite(product);
     } else {
       _favorites[pid] = product;
-      _addFavorite(product);
     }
+
+    _persistUserFavorites();
+    notifyListeners();
   }
 
   CreditCard getCreditCard() => _creditCard;
 
   // Sparar information till servern och
   // meddelar gränssnittet att data ändrats
-  void setCreditCard(CreditCard card) async {
+  Future<void> setCreditCard(CreditCard card) async {
     _creditCard.cardType = card.cardType;
     _creditCard.holdersName = card.holdersName;
     _creditCard.validMonth = card.validMonth;
@@ -190,7 +204,7 @@ class ImatDataHandler extends ChangeNotifier {
 
   // Sparar information till servern och
   // meddelar gränssnittet att data ändrats
-  void setCustomer(Customer customer) async {
+  Future<void> setCustomer(Customer customer) async {
     _customer.firstName = customer.firstName;
     _customer.lastName = customer.lastName;
     _customer.phoneNumber = customer.phoneNumber;
@@ -219,6 +233,8 @@ class ImatDataHandler extends ChangeNotifier {
   // Load user-related data (customer, creditcard, shoppingcart, orders)
   Future<void> loadUserData() async {
     try {
+      _clearUserScopedData();
+
       var response = await InternetHandler.getUser();
       if (response.isNotEmpty) {
         var singleJson = jsonDecode(response);
@@ -243,16 +259,28 @@ class ImatDataHandler extends ChangeNotifier {
         _shoppingCart = ShoppingCart.fromJson(singleJson);
       }
 
-      response = await InternetHandler.getOrders();
-      if (response.isNotEmpty) {
-        var jsonData = jsonDecode(response) as List;
-        _orders.clear();
-        _orders.addAll(jsonData.map((item) => Order.fromJson(item)).toList());
-      }
-
       response = await InternetHandler.getExtras();
       if (response.isNotEmpty) {
         _extras = jsonDecode(response);
+        // Do not load saved shopping carts or user orders into local state
+        // while the user is logged in; UI will fetch these directly from the server.
+        _loadUserFavoritesFromExtras();
+      }
+
+      // Load orders from server and store them persistently
+      response = await InternetHandler.getOrders();
+      if (response.isNotEmpty) {
+        try {
+          var jsonData = jsonDecode(response) as List;
+          _orders.clear();
+          for (final rawOrder in jsonData) {
+            final order = Order.fromJson(rawOrder as Map<String, dynamic>);
+            _orders.add(order);
+          }
+          _persistUserOrders();
+        } catch (e) {
+          debugPrint('loadUserData: error parsing orders: $e');
+        }
       }
 
       notifyListeners();
@@ -261,21 +289,26 @@ class ImatDataHandler extends ChangeNotifier {
     }
   }
 
-  // Convenience: log in by setting user on server and fetching profile data
+  // Convenience: verify credentials against the stored server user and fetch profile data
   Future<void> login(String userName, String password) async {
-    _user.userName = userName;
-    _user.password = password;
-    await InternetHandler.setUser(_user);
+    final response = await InternetHandler.getUser();
+    if (response.isEmpty) {
+      throw Exception('Inget konto finns ännu. Skapa ett konto först.');
+    }
+
+    final storedUser = User.fromJson(jsonDecode(response));
+    final userMatches = storedUser.userName == userName && storedUser.password == password;
+    if (!userMatches) {
+      throw Exception('Fel användarnamn eller lösenord.');
+    }
+
+    _clearUserScopedData();
     await loadUserData();
   }
 
   // Log out locally (does not call server)
   void logout() {
-    _user = User('', '');
-    _customer = Customer('', '', '', '', '', '', '', '');
-    _creditCard = CreditCard('', '', 12, 25, '', 0);
-    _shoppingCart = ShoppingCart([]);
-    _savedShoppingCarts.clear();
+    _clearUserScopedData();
     notifyListeners();
   }
 
@@ -308,75 +341,233 @@ class ImatDataHandler extends ChangeNotifier {
   // Sparar data till servern och meddelar GUI:t att data ändrats
   void addExtra(String key, dynamic jsonData) {
     _extras[key] = jsonData;
-    setExtras(_extras);
+    unawaited(setExtras(_extras));
   }
 
   // Tar bort key från extras.
   // Sparar data till servern och meddelar GUI:t att data ändrats.
   void removeExtra(String key) {
     _extras.remove(key);
-    setExtras(_extras);
+    unawaited(setExtras(_extras));
   }
 
   // Sparar extras till servern och meddelar GUI:t att data ändrats.
   // Om man ändrar mapen som returneras från getExtras direkt så
   // måste denna metod anropas för att data ska sparas och GUI:t uppdateras
   // annars behöver man inte använda den.
-  void setExtras(Map<String, dynamic> extras) async {
+  Future<void> setExtras(Map<String, dynamic> extras) async {
     await InternetHandler.setExtras(extras);
     notifyListeners();
   }
 
-  void saveShoppingCart(String name) {
+  Future<void> saveShoppingCart(String name) async {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty || _shoppingCart.items.isEmpty) {
       return;
     }
 
-    _savedShoppingCarts.removeWhere((cart) => cart.name.toLowerCase() == trimmedName.toLowerCase());
-    _savedShoppingCarts.insert(
-      0,
-      SavedShoppingCart(
-        name: trimmedName,
-        savedAt: DateTime.now(),
-        cart: ShoppingCart(
-          _shoppingCart.items
-              .map((item) => ShoppingItem(item.product, amount: item.amount))
-              .toList(),
-        ),
+    // Build the SavedShoppingCart JSON
+    final newCart = SavedShoppingCart(
+      name: trimmedName,
+      savedAt: DateTime.now(),
+      cart: ShoppingCart(
+        _shoppingCart.items
+            .map((item) => ShoppingItem(item.product, amount: item.amount))
+            .toList(),
       ),
     );
 
-    _persistSavedShoppingCarts();
-    notifyListeners();
+    // Fetch extras from server, update savedShoppingCartsByUser for this user, and save immediately.
+    final userKey = _activeUserKey();
+    if (userKey == null) return;
+
+    try {
+      final extrasRaw = await InternetHandler.getExtras();
+      Map<String, dynamic> extras = {};
+      if (extrasRaw.isNotEmpty) {
+        extras = jsonDecode(extrasRaw) as Map<String, dynamic>;
+      }
+      final savedByUser = extras[_savedShoppingCartsByUserKey];
+      Map<String, dynamic> map = {};
+      if (savedByUser is Map) {
+        map = Map<String, dynamic>.from(savedByUser);
+      }
+      final existing = <dynamic>[];
+      final list = map[userKey];
+      if (list is List) existing.addAll(list);
+      // Remove any with same name (case-insensitive)
+      existing.removeWhere((e) {
+        try {
+          final m = e is Map<String, dynamic> ? e : Map<String, dynamic>.from(e);
+          return (m['name'] as String).toLowerCase() == trimmedName.toLowerCase();
+        } catch (_) {
+          return false;
+        }
+      });
+      existing.insert(0, newCart.toJson());
+      map[userKey] = existing;
+      extras[_savedShoppingCartsByUserKey] = map;
+      await InternetHandler.setExtras(extras);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('saveShoppingCart: error saving to server: $e');
+    }
   }
 
-  void _persistSavedShoppingCarts() {
-    _extras[_savedShoppingCartsKey] = _savedShoppingCarts.map((cart) => cart.toJson()).toList();
-    setExtras(_extras);
+  /// Save a shopping cart with the provided list of [items] under [name].
+  /// This allows saving a subset of the current shopping cart.
+  Future<void> saveShoppingCartWithItems(String name, List<ShoppingItem> items) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty || items.isEmpty) {
+      return;
+    }
+
+    final newCart = SavedShoppingCart(
+      name: trimmedName,
+      savedAt: DateTime.now(),
+      cart: ShoppingCart(items.map((item) => ShoppingItem(item.product, amount: item.amount)).toList()),
+    );
+
+    final userKey = _activeUserKey();
+    if (userKey == null) return;
+
+    try {
+      final extrasRaw = await InternetHandler.getExtras();
+      Map<String, dynamic> extras = {};
+      if (extrasRaw.isNotEmpty) {
+        extras = jsonDecode(extrasRaw) as Map<String, dynamic>;
+      }
+      final savedByUser = extras[_savedShoppingCartsByUserKey];
+      Map<String, dynamic> map = {};
+      if (savedByUser is Map) {
+        map = Map<String, dynamic>.from(savedByUser);
+      }
+      final existing = <dynamic>[];
+      final list = map[userKey];
+      if (list is List) existing.addAll(list);
+      existing.removeWhere((e) {
+        try {
+          final m = e is Map<String, dynamic> ? e : Map<String, dynamic>.from(e);
+          return (m['name'] as String).toLowerCase() == trimmedName.toLowerCase();
+        } catch (_) {
+          return false;
+        }
+      });
+      existing.insert(0, newCart.toJson());
+      map[userKey] = existing;
+      extras[_savedShoppingCartsByUserKey] = map;
+      await InternetHandler.setExtras(extras);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('saveShoppingCartWithItems: error saving to server: $e');
+    }
+  }
+
+  Future<void> _persistSavedShoppingCarts() async {
+    // Deprecated: persistence is now done directly against server in save methods.
+    return;
   }
 
   void _loadSavedShoppingCartsFromExtras() {
     _savedShoppingCarts.clear();
-
-    final raw = _extras[_savedShoppingCartsKey];
-    if (raw is! List) {
+    final savedCartsByUser = _ensureExtrasMap(_savedShoppingCartsByUserKey);
+    if (savedCartsByUser is! Map) {
       return;
     }
 
-    for (final entry in raw) {
-      if (entry is Map<String, dynamic>) {
-        _savedShoppingCarts.add(SavedShoppingCart.fromJson(entry));
-      } else if (entry is Map) {
-        _savedShoppingCarts.add(SavedShoppingCart.fromJson(Map<String, dynamic>.from(entry)));
+    for (final raw in savedCartsByUser.values) {
+      if (raw is! List) continue;
+      for (final entry in raw) {
+        if (entry is Map<String, dynamic>) {
+          _savedShoppingCarts.add(SavedShoppingCart.fromJson(entry));
+        } else if (entry is Map) {
+          _savedShoppingCarts.add(SavedShoppingCart.fromJson(Map<String, dynamic>.from(entry)));
+        }
       }
     }
   }
 
+  void _clearUserScopedData() {
+    _user = User('', '');
+    _favorites.clear();
+    _customer = Customer('', '', '', '', '', '', '', '');
+    _creditCard = CreditCard('', '', 12, 25, '', 0);
+    _shoppingCart = ShoppingCart([]);
+    _orders.clear();
+    _extras = {};
+    _savedShoppingCarts.clear();
+  }
+
   void removeSavedShoppingCart(String name) {
-    _savedShoppingCarts.removeWhere((cart) => cart.name == name);
-    _persistSavedShoppingCarts();
-    notifyListeners();
+    // Remove the named saved cart on the server for all users if present.
+    unawaited(() async {
+      try {
+        final extrasRaw = await InternetHandler.getExtras();
+        Map<String, dynamic> extras = {};
+        if (extrasRaw.isNotEmpty) {
+          extras = jsonDecode(extrasRaw) as Map<String, dynamic>;
+        }
+        final savedByUser = extras[_savedShoppingCartsByUserKey];
+        if (savedByUser is Map) {
+          final map = Map<String, dynamic>.from(savedByUser);
+          bool changed = false;
+          for (final key in map.keys.toList()) {
+            final list = map[key];
+            if (list is List) {
+              final filtered = list.where((e) {
+                try {
+                  final m = e is Map<String, dynamic> ? e : Map<String, dynamic>.from(e);
+                  return !(m['name'] == name);
+                } catch (_) {
+                  return true;
+                }
+              }).toList();
+              if (filtered.length != list.length) {
+                map[key] = filtered;
+                changed = true;
+              }
+            }
+          }
+          if (changed) {
+            extras[_savedShoppingCartsByUserKey] = map;
+            await InternetHandler.setExtras(extras);
+            notifyListeners();
+          }
+        }
+      } catch (e) {
+        debugPrint('removeSavedShoppingCart error: $e');
+      }
+    }());
+  }
+
+  /// Fetch saved shopping carts from the server (aggregated across users).
+  Future<List<Map<String, dynamic>>> fetchSavedShoppingCartsFromServer() async {
+    final List<Map<String, dynamic>> aggregated = [];
+    try {
+      final extrasRaw = await InternetHandler.getExtras();
+      if (extrasRaw.isEmpty) return aggregated;
+      final extras = jsonDecode(extrasRaw) as Map<String, dynamic>;
+      final savedByUser = extras[_savedShoppingCartsByUserKey];
+      if (savedByUser is Map) {
+        for (final entry in savedByUser.entries) {
+          final userKey = entry.key;
+          final rawList = entry.value;
+          if (rawList is List) {
+            for (final raw in rawList) {
+              try {
+                final map = raw is Map<String, dynamic> ? raw : Map<String, dynamic>.from(raw);
+                aggregated.add({'cart': map, 'owner': userKey});
+              } catch (_) {
+                // ignore malformed
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('fetchSavedShoppingCartsFromServer error: $e');
+    }
+    return aggregated;
   }
 
   void addSavedShoppingCartToShoppingCart(SavedShoppingCart savedCart) {
@@ -509,7 +700,7 @@ class ImatDataHandler extends ChangeNotifier {
     _shoppingCart.clear();
     notifyListeners();
 
-    // Reload orders
+    // Pick the latest server order and store it under the currently logged in user.
     var response = await InternetHandler.getOrders();
 
     if (response.isEmpty) {
@@ -519,9 +710,13 @@ class ImatDataHandler extends ChangeNotifier {
 
     try {
       var jsonData = jsonDecode(response) as List;
+      if (jsonData.isEmpty) {
+        return;
+      }
 
-      _orders.clear();
-      _orders.addAll(jsonData.map((item) => Order.fromJson(item)).toList());
+      final latestOrder = Order.fromJson(jsonData.last as Map<String, dynamic>);
+      _orders.insert(0, latestOrder);
+      _persistUserOrders();
       notifyListeners();
     } catch (e) {
       debugPrint('placeOrder decode error: $e');
@@ -558,7 +753,7 @@ class ImatDataHandler extends ChangeNotifier {
 
     response = await InternetHandler.getExtras();
     _extras = jsonDecode(response);
-    _loadSavedShoppingCartsFromExtras();
+    _loadUserFavoritesFromExtras();
 
     notifyListeners();
   }
@@ -566,18 +761,6 @@ class ImatDataHandler extends ChangeNotifier {
   ///
   // Code below this line is private and can be disregarded
   ///
-  void _addFavorite(Product p) async {
-    String _ = await InternetHandler.addFavorite(p.productId);
-
-    notifyListeners();
-  }
-
-  void _removeFavorite(Product p) async {
-    String _ = await InternetHandler.removeFavorite(p.productId);
-
-    notifyListeners();
-  }
-
   final List<Product> _products = [];
 
   final List<Product> _selectProducts = [];
@@ -601,7 +784,9 @@ class ImatDataHandler extends ChangeNotifier {
 
   final List<SavedShoppingCart> _savedShoppingCarts = [];
 
-  static const _savedShoppingCartsKey = 'savedShoppingCarts';
+  static const _savedShoppingCartsByUserKey = 'savedShoppingCartsByUser';
+  static const _favoritesByUserKey = 'favoritesByUser';
+  static const _ordersByUserKey = 'ordersByUser';
 
   //final Map<int, Image> _imageCache = HashMap();
 
@@ -719,17 +904,6 @@ import 'package:http/http.dart' as http;
       jsonData.map((item) => ProductDetail.fromJson(item)).toList(),
     );
 
-    // Fetching favorites
-    response = await InternetHandler.getFavorites();
-    jsonData = jsonDecode(response);
-
-    var favList = jsonData.map((item) => Product.fromJson(item)).toList();
-    for (final product in favList) {
-      _favorites[product.productId] = product;
-    }
-
-    notifyListeners();
-
     // Fetching CreditCard, Customer & User
     response = await InternetHandler.getCreditCard();
     var singleJson = jsonDecode(response);
@@ -745,14 +919,6 @@ import 'package:http/http.dart' as http;
 
     //print('User ${singleJson}');
 
-    response = await InternetHandler.getOrders();
-    singleJson = jsonDecode(response);
-
-    jsonData = jsonDecode(response);
-
-    _orders.clear();
-    _orders.addAll(jsonData.map((item) => Order.fromJson(item)).toList());
-
     response = await InternetHandler.getShoppingCart();
 
     //print('Cart $response');
@@ -761,6 +927,9 @@ import 'package:http/http.dart' as http;
 
     response = await InternetHandler.getExtras();
     _extras = jsonDecode(response);
+    _loadUserFavoritesFromExtras();
+    _loadUserOrdersFromExtras();
+    _loadSavedShoppingCartsFromExtras();
 
     /* Testcode
 
@@ -779,5 +948,157 @@ import 'package:http/http.dart' as http;
      */
 
     notifyListeners();
+  }
+
+  String? _activeUserKey() {
+    final userName = _user.userName.trim();
+    if (userName.isEmpty) {
+      return null;
+    }
+    return userName.toLowerCase();
+  }
+
+  Map<String, dynamic> _ensureExtrasMap(String key) {
+    final raw = _extras[key];
+    if (raw is Map<String, dynamic>) {
+      return raw;
+    }
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+    return <String, dynamic>{};
+  }
+
+  void _persistUserFavorites() {
+    final userKey = _activeUserKey();
+    if (userKey == null) {
+      return;
+    }
+
+    final favoritesByUser = _ensureExtrasMap(_favoritesByUserKey);
+    favoritesByUser[userKey] = _favorites.keys.toList();
+    _extras[_favoritesByUserKey] = favoritesByUser;
+    unawaited(setExtras(_extras));
+  }
+
+  void _loadUserFavoritesFromExtras() {
+    _favorites.clear();
+
+    final userKey = _activeUserKey();
+    if (userKey == null) {
+      return;
+    }
+
+    final favoritesByUser = _ensureExtrasMap(_favoritesByUserKey);
+    final rawFavorites = favoritesByUser[userKey];
+    if (rawFavorites is! List) {
+      return;
+    }
+
+    for (final id in rawFavorites) {
+      final intId = id is int ? id : int.tryParse('$id');
+      if (intId == null) {
+        continue;
+      }
+      final product = getProduct(intId);
+      if (product != null) {
+        _favorites[intId] = product;
+      }
+    }
+  }
+
+  Map<String, dynamic> _serializeOrder(Order order) {
+    return {
+      'orderNumber': order.orderNumber,
+      'date': order.date.millisecondsSinceEpoch,
+      'items': order.items.map((item) => item.toJson()).toList(),
+    };
+  }
+
+  Order? _deserializeOrder(dynamic raw) {
+    if (raw is! Map) {
+      return null;
+    }
+
+    final map = Map<String, dynamic>.from(raw);
+    final rawItems = map['items'];
+    if (rawItems is! List) {
+      return null;
+    }
+
+    final items = <ShoppingItem>[];
+    for (final entry in rawItems) {
+      if (entry is Map<String, dynamic>) {
+        items.add(ShoppingItem.fromJson(entry));
+      } else if (entry is Map) {
+        items.add(ShoppingItem.fromJson(Map<String, dynamic>.from(entry)));
+      }
+    }
+
+    final orderNumber = map['orderNumber'] is int ? map['orderNumber'] as int : 0;
+    final dateMs = map['date'] is int ? map['date'] as int : DateTime.now().millisecondsSinceEpoch;
+    return Order(orderNumber, DateTime.fromMillisecondsSinceEpoch(dateMs), items);
+  }
+
+  /// Returns a list of all orders available to the client.
+  ///
+  /// First attempts to aggregate orders stored in `_extras['ordersByUser']`.
+  /// If no orders are found there, falls back to fetching orders from
+  /// the server via `InternetHandler.getOrders()`.
+  Future<List<Order>> getAllOrders({bool refreshFromServer = false}) async {
+    final List<Order> aggregated = [];
+    try {
+      final response = await InternetHandler.getOrders();
+      if (response.isNotEmpty) {
+        final jsonData = jsonDecode(response) as List;
+        for (final rawOrder in jsonData) {
+          try {
+            final order = Order.fromJson(rawOrder as Map<String, dynamic>);
+            aggregated.add(order);
+          } catch (_) {
+            // ignore malformed
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('getAllOrders server fetch error: $e');
+    }
+
+    aggregated.sort((a, b) => b.date.compareTo(a.date));
+    return aggregated;
+  }
+
+  void _persistUserOrders() {
+    final userKey = _activeUserKey();
+    if (userKey == null) {
+      return;
+    }
+
+    final ordersByUser = _ensureExtrasMap(_ordersByUserKey);
+    ordersByUser[userKey] = _orders.map(_serializeOrder).toList();
+    _extras[_ordersByUserKey] = ordersByUser;
+    unawaited(setExtras(_extras));
+  }
+
+  void _loadUserOrdersFromExtras() {
+    _orders.clear();
+
+    final userKey = _activeUserKey();
+    if (userKey == null) {
+      return;
+    }
+
+    final ordersByUser = _ensureExtrasMap(_ordersByUserKey);
+    final rawOrders = ordersByUser[userKey];
+    if (rawOrders is! List) {
+      return;
+    }
+
+    for (final rawOrder in rawOrders) {
+      final order = _deserializeOrder(rawOrder);
+      if (order != null) {
+        _orders.add(order);
+      }
+    }
   }
 }

@@ -1,5 +1,6 @@
 // ignore_for_file: constant_identifier_names
 
+/// Produktkategorier som används för att filtrera och organisera produkter
 enum ProductCategory {
   POD,
   BREAD,
@@ -25,14 +26,15 @@ enum ProductCategory {
   UNDEFINED,
 }
 
+/// En produkt från katalogen
 class Product {
-  int productId;
-  ProductCategory category;
-  String name;
-  bool isEcological;
-  double price;
-  String unit;
-  String imageName;
+  int productId; // Unik produkt-ID
+  ProductCategory category; // Produktkategori
+  String name; // Produktnamn
+  bool isEcological; // Är denna produkt ekologisk?
+  double price; // Pris per enhet
+  String unit; // Måttenhet (t.ex. "kg", "st")
+  String imageName; // Bildfilnamn
 
   Product(
     this.productId,
@@ -44,12 +46,16 @@ class Product {
     this.imageName,
   );
 
+  /// Deserialiserar JSON till Product-objekt
+  /// DEFENSIV PARSING för att hantera server-variatione
   Product.fromJson(Map<String, dynamic> json)
     : productId = json[_idKey],
       category = _category(json[_catKey]),
       name = json[_nameKey],
-      isEcological = json[_ecoKey],
-      price = json[_priceKey],
+      // Försök både "ecological" och "isEcological" keys, fallback false
+      isEcological = (json[_ecoKey] ?? json['isEcological']) as bool? ?? false,
+      // Konvertera int till double om behövs
+      price = (json[_priceKey] is int) ? (json[_priceKey] as int).toDouble() : (json[_priceKey] as double),
       unit = json[_unitKey],
       imageName = json[_imageKey];
 
