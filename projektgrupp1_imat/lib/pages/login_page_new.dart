@@ -5,6 +5,9 @@ import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:imat_app/widgets/primary_action_button.dart';
 
+const double loginPageNewTitleTextSize = 22.0;
+const double loginPageNewSectionTitleTextSize = 17.0;
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -69,7 +72,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             children: [
               const Text(
                 'Logga in',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: loginPageNewTitleTextSize, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 24),
               _buildProgressIndicator(),
@@ -80,7 +83,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text('Inloggningsuppgifter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text('Inloggningsuppgifter', style: TextStyle(fontSize: loginPageNewSectionTitleTextSize, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _userController,

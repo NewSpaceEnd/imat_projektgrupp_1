@@ -10,6 +10,9 @@ import 'package:imat_app/widgets/preview_product_strip.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:provider/provider.dart';
 
+const double mainViewSearchResultsTextSize = 22.0;
+const double mainViewSectionTitleTextSize = 24.0;
+
 typedef SidebarFocusChanged = void Function(
   ProductCategory? activeCategory,
   bool favoritesActive,
@@ -310,7 +313,7 @@ class _MainContentState extends State<_MainContent> {
                 children: [
                   Text(
                     'Sökresultat (${widget.iMat.selectProducts.length})',
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: mainViewSearchResultsTextSize, fontWeight: FontWeight.bold),
                   ),
                   TextButton(
                     onPressed: () => widget.iMat.selectAllProducts(),
@@ -402,7 +405,7 @@ class _FavoriteSectionWidget extends StatelessWidget {
             children: [
               const Text(
                 'Favoriter',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: mainViewSectionTitleTextSize, fontWeight: FontWeight.bold),
               ),
               TextButton(
                 onPressed: () => iMat.selectFavorites(),
@@ -457,7 +460,7 @@ class _SpecialOfferSectionWidget extends StatelessWidget {
             children: [
               const Text(
                 'Specialerbjudanden',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: mainViewSectionTitleTextSize, fontWeight: FontWeight.bold),
               ),
               TextButton(
                 onPressed: () => Navigator.pushNamed(context, '/offers'),

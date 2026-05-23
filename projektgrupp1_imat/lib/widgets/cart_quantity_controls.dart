@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/widgets/primary_action_button.dart';
+
+const double cartQuantityInputTextSize = 25.0;
 
 class CartQuantityControls extends StatelessWidget {
   final double amountInCart;
@@ -65,7 +68,7 @@ class CartQuantityControls extends StatelessWidget {
                 textAlign: TextAlign.center,
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.done,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: cartQuantityInputTextSize, fontWeight: FontWeight.bold),
                 decoration: const InputDecoration(
                   isDense: true,
                   border: InputBorder.none,

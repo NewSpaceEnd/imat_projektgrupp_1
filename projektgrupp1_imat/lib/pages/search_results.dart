@@ -9,6 +9,8 @@ import 'package:imat_app/widgets/product_card.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:provider/provider.dart';
 
+const double searchResultsEmptyTextSize = 16.0;
+
 class SearchResultsPage extends StatefulWidget {
   const SearchResultsPage({super.key});
 
@@ -82,7 +84,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                         Text(
                           'Inga produkter matchade "${iMat.searchQuery}"',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: searchResultsEmptyTextSize),
                         ),
                       ],
                     ),

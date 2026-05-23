@@ -6,6 +6,10 @@ import 'package:imat_app/widgets/primary_action_button.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:provider/provider.dart';
 
+const double shoppingCartSummaryLabelTextSize = 36.0;
+const double shoppingCartSummaryValueTextSize = 36.0;
+const double shoppingCartSummaryTotalValueTextSize = 46.0;
+
 class ShoppingCartPage extends StatelessWidget {
   static const double serviceFee = 25.0;
 
@@ -111,16 +115,15 @@ class ShoppingCartPage extends StatelessWidget {
                               children: [
                                 const Text(
                                   'Antal varor',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                                  style: TextStyle(fontSize: shoppingCartSummaryLabelTextSize, fontWeight: FontWeight.w600),
                                 ),
                                 Text(
                                   itemCount.toString(),
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(fontSize: shoppingCartSummaryValueTextSize, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
                           ),
-
                           const SizedBox(height: 16),
 
                           // Avgift
@@ -136,11 +139,11 @@ class ShoppingCartPage extends StatelessWidget {
                               children: [
                                 const Text(
                                   'Avgift',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                                  style: TextStyle(fontSize: shoppingCartSummaryLabelTextSize, fontWeight: FontWeight.w600),
                                 ),
                                 Text(
                                   '${serviceFee.toStringAsFixed(0)} kr',
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(fontSize: shoppingCartSummaryValueTextSize, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -161,13 +164,27 @@ class ShoppingCartPage extends StatelessWidget {
                               children: [
                                 const Text(
                                   'Totalt belopp',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                                  style: TextStyle(fontSize: shoppingCartSummaryLabelTextSize, fontWeight: FontWeight.w600),
                                 ),
                                 Text(
                                   '${totalWithService.toStringAsFixed(2)} kr',
-                                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(fontSize: shoppingCartSummaryTotalValueTextSize, fontWeight: FontWeight.bold),
                                 ),
                               ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Checkout button: no outer decoration, placed directly
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: PrimaryActionButton(
+                                onPressed: () => Navigator.pushNamed(context, '/checkout'),
+                                icon: Icons.shopping_cart,
+                                label: 'Betala',
+                                textSize: 28.0,
+                              ),
                             ),
                           ),
                         ],
@@ -179,18 +196,7 @@ class ShoppingCartPage extends StatelessWidget {
             ),
           ),
 
-          // Checkout button - always visible at bottom
-          Padding(
-            padding: const EdgeInsets.all(AppTheme.paddingSmall),
-            child: SizedBox(
-              width: double.infinity,
-              child: PrimaryActionButton(
-                onPressed: () => Navigator.pushNamed(context, '/checkout'),
-                icon: Icons.shopping_cart,
-                label: 'Betala',
-              ),
-            ),
-          ),
+          // (Checkout button moved to right-side summary column)
         ],
       ),
     );

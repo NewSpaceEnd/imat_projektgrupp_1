@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/model/imat_data_handler.dart';
 
+const double searchBarHintTextSize = 25.0;
+const double searchBarInputTextSize = 25.0;
+
 class SearchBarWidget extends StatefulWidget {
   final ImatDataHandler iMat;
   final EdgeInsetsGeometry padding;
@@ -47,8 +50,10 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
       padding: widget.padding,
       child: TextField(
         controller: _controller,
+        style: TextStyle(fontSize: searchBarInputTextSize),
         decoration: InputDecoration(
           hintText: 'Sök efter produkter',
+          hintStyle: TextStyle(fontSize: searchBarHintTextSize, color: Colors.grey.shade600),
           prefixIcon: const Icon(Icons.search),
           filled: true,
           fillColor: Colors.grey[200],

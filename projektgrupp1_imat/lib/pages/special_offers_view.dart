@@ -7,6 +7,8 @@ import 'package:imat_app/widgets/product_card.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:imat_app/widgets/category_sort_sidebar.dart';
 
+const double specialOffersTitleTextSize = 28.0;
+
 class SpecialOffersPage extends StatelessWidget {
   const SpecialOffersPage({super.key});
 
@@ -74,7 +76,7 @@ class SpecialOffersPage extends StatelessWidget {
                 ),
                 child: const Text(
                   'Specialerbjudanden',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+                  style: TextStyle(fontSize: specialOffersTitleTextSize, fontWeight: FontWeight.w800),
                 ),
               ),
               const SizedBox(height: AppTheme.paddingSmall),

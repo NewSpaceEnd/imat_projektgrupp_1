@@ -8,6 +8,10 @@ import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/widgets/auth_shell.dart';
 import 'package:imat_app/widgets/primary_action_button.dart';
 
+const double registerPageStepTextSize = 12.0;
+const double registerPageSectionTitleTextSize = 18.0;
+const double registerPageSectionDescriptionTextSize = 13.0;
+
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -305,7 +309,7 @@ class _StepIndicator extends StatelessWidget {
                 steps[index],
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: registerPageStepTextSize,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                   color: isActive ? Colors.black87 : Colors.grey.shade700,
                 ),
@@ -339,12 +343,12 @@ class _SectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: registerPageSectionTitleTextSize, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(
             description,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.35),
+            style: TextStyle(fontSize: registerPageSectionDescriptionTextSize, color: Colors.grey.shade700, height: 1.35),
           ),
           const SizedBox(height: 18),
           child,

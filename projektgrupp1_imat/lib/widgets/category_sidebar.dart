@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:imat_app/model/imat/product.dart';
 import 'package:imat_app/util/category_names.dart';
 
+const double categorySidebarTitleTextSize = 32.0;
+const double categorySidebarItemTextSize = 16.0;
+const double categorySidebarHighlightedItemTextSize = 18.0;
+
 /// Sidebar widget för kategori-navigering på produkt-sidan.
 /// Visar Favoriter och Specialerbjudanden överst (med pekarkursor),
 /// sedan en divider, och därunder alla produktkategorier.
@@ -46,7 +50,7 @@ class CategorySidebar extends StatelessWidget {
                 padding: EdgeInsets.only(bottom: 10),
                 child: Text(
                   'Kategorier',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: categorySidebarTitleTextSize, fontWeight: FontWeight.bold),
                 ),
               ),
               // Favoriter-knapp (prominent med chevron och hover-effekt)
@@ -120,7 +124,7 @@ class _SidebarItemState extends State<_SidebarItem> {
             : Colors.transparent;
 
     final textStyle = TextStyle(
-      fontSize: widget.isHighlighted ? 15 : 14,
+      fontSize: widget.isHighlighted ? categorySidebarHighlightedItemTextSize : categorySidebarItemTextSize,
       fontWeight: widget.isHighlighted ? FontWeight.w800 : (widget.prominent ? FontWeight.w600 : FontWeight.w500),
       color: Colors.black87,
       decoration: widget.prominent && !_hover ? TextDecoration.none : TextDecoration.none,

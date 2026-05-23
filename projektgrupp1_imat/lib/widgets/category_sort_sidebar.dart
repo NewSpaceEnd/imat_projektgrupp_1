@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+const double categorySortSidebarTitleTextSize = 22.0;
+const double categorySortSidebarOptionTextSize = 16.0;
+
 enum CategorySortMode {
   relevance,
   priceHighToLow,
@@ -32,7 +35,7 @@ class CategorySortSidebar extends StatelessWidget {
         children: [
           const Text(
             'Sortera:',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: categorySortSidebarTitleTextSize, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           _SortOption(
@@ -89,7 +92,7 @@ class _SortOption extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: categorySortSidebarOptionTextSize,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: const Color(0xFF2F2F35),
                 ),

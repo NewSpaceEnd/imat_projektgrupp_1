@@ -10,6 +10,14 @@ class ProductCard extends StatefulWidget {
   final Product product;
   final ImatDataHandler iMat;
 
+  // Ändra dessa värden för att justera textstorleken i produktkorten.
+  static const double originTextSize = 25.0;
+  static const double productNameTextSize = 25.0;
+  static const double brandTextSize = 18.0;
+  static const double unitTextSize = 18.0;
+  static const double priceTextSize = 25.0;
+  static const double ecoBadgeTextSize = 18.0;
+
   const ProductCard(this.product, this.iMat, {super.key});
 
   @override
@@ -69,7 +77,10 @@ class _ProductCardState extends State<ProductCard> {
                             Expanded(
                               child: Text(
                                 widget.iMat.getDetail(widget.product)?.origin ?? '',
-                                style: const TextStyle(fontSize: 13, color: Colors.grey),
+                                style: const TextStyle(
+                                  fontSize: ProductCard.originTextSize,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                             IconButton(
@@ -94,7 +105,10 @@ class _ProductCardState extends State<ProductCard> {
                         // Name
                         Text(
                           widget.product.name,
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: ProductCard.productNameTextSize,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
 
                         const SizedBox(height: 6),
@@ -107,7 +121,10 @@ class _ProductCardState extends State<ProductCard> {
                                 widget.iMat.getDetail(widget.product)?.brand.isNotEmpty == true
                                     ? widget.iMat.getDetail(widget.product)!.brand
                                     : widget.product.unit,
-                                style: const TextStyle(fontSize: 14, color: Colors.black54),
+                                style: const TextStyle(
+                                  fontSize: ProductCard.brandTextSize,
+                                  color: Colors.black54,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -116,12 +133,18 @@ class _ProductCardState extends State<ProductCard> {
                               children: [
                                 Text(
                                   widget.product.unit,
-                                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                  style: const TextStyle(
+                                    fontSize: ProductCard.unitTextSize,
+                                    color: Colors.black54,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   '${(widget.product.price).toStringAsFixed(2)} kr',
-                                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                  style: const TextStyle(
+                                    fontSize: ProductCard.unitTextSize,
+                                    color: Colors.black54,
+                                  ),
                                 ),
                               ],
                             ),
@@ -136,7 +159,10 @@ class _ProductCardState extends State<ProductCard> {
                             Expanded(
                               child: Text(
                                 '${widget.product.price.toStringAsFixed(2)} kr',
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                                style: const TextStyle(
+                                  fontSize: ProductCard.priceTextSize,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                             ),
                             if (widget.product.isEcological)
@@ -150,7 +176,7 @@ class _ProductCardState extends State<ProductCard> {
                                   'eko',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 12,
+                                    fontSize: ProductCard.ecoBadgeTextSize,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),

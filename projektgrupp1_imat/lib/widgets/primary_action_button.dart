@@ -13,11 +13,31 @@ class PrimaryActionButton extends StatefulWidget {
   final String label;
   final IconData? icon;
   final VoidCallback? onPressed;
+  final Color textColor;
+  final Color iconColor;
+  final Color baseTopColor;
+  final Color baseBottomColor;
+  final Color hoverTopColor;
+  final Color hoverBottomColor;
+  final Color pressedTopColor;
+  final Color pressedBottomColor;
+  final Color borderColor;
+  final double? textSize;
 
   const PrimaryActionButton({
     required this.label,
     this.icon,
     this.onPressed,
+    this.textColor = Colors.white,
+    this.iconColor = Colors.white,
+    this.baseTopColor = const Color(0xFF6C3BD6),
+    this.baseBottomColor = const Color(0xFF4B23B7),
+    this.hoverTopColor = const Color(0xFF7B4AE0),
+    this.hoverBottomColor = const Color(0xFF5A2BD2),
+    this.pressedTopColor = const Color(0xFF4F25B2),
+    this.pressedBottomColor = const Color(0xFF351A82),
+    this.borderColor = const Color(0xFF8E6AF0),
+    this.textSize,
     super.key,
   });
 
@@ -26,19 +46,11 @@ class PrimaryActionButton extends StatefulWidget {
 }
 
 class _PrimaryActionButtonState extends State<PrimaryActionButton> {
+  static const double buttonTextSize = 20.0;
+  static const double buttonIconSize = 25.0;
+
   bool _isHovered = false; // True när musen är över knappen
   bool _isPressed = false; // True när knappen trycks in
-
-  // Gradient-färger för olika tillstånd
-  // Normal: base
-  // Hover: lighter purple
-  // Pressed: darker purple
-  static const Color _baseTop = Color(0xFF6C3BD6);
-  static const Color _baseBottom = Color(0xFF4B23B7);
-  static const Color _hoverTop = Color(0xFF7B4AE0);
-  static const Color _hoverBottom = Color(0xFF5A2BD2);
-  static const Color _pressedTop = Color(0xFF4F25B2);
-  static const Color _pressedBottom = Color(0xFF351A82);
 
   @override
   Widget build(BuildContext context) {
@@ -49,17 +61,17 @@ class _PrimaryActionButtonState extends State<PrimaryActionButton> {
     final topColor = !enabled
         ? const Color(0xFF8E84A8)
         : _isPressed
-            ? _pressedTop
+        ? widget.pressedTopColor
             : _isHovered
-                ? _hoverTop
-                : _baseTop;
+          ? widget.hoverTopColor
+          : widget.baseTopColor;
     final bottomColor = !enabled
         ? const Color(0xFF6F6782)
         : _isPressed
-            ? _pressedBottom
+        ? widget.pressedBottomColor
             : _isHovered
-                ? _hoverBottom
-                : _baseBottom;
+          ? widget.hoverBottomColor
+          : widget.baseBottomColor;
     
     // Justera skugga-opacity baserat på tillstånd
     final shadowOpacity = !enabled ? 0.0 : _isPressed ? 0.18 : 0.28;
@@ -101,7 +113,7 @@ class _PrimaryActionButtonState extends State<PrimaryActionButton> {
                 borderRadius: BorderRadius.circular(12),
                 // Subtil lila border
                 border: Border.all(
-                  color: const Color(0xFF8E6AF0).withOpacity(enabled ? 0.55 : 0.25),
+                  color: widget.borderColor.withOpacity(enabled ? 0.55 : 0.25),
                 ),
                 // Skugga som ändras baserat på tillstånd
                 boxShadow: enabled
@@ -116,14 +128,14 @@ class _PrimaryActionButtonState extends State<PrimaryActionButton> {
               ),
               // Text-stil: vit, medel storlek, semi-bold
               child: DefaultTextStyle(
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
+                style: TextStyle(
+                  color: widget.textColor,
+                  fontSize: widget.textSize ?? buttonTextSize,
                   fontWeight: FontWeight.w600,
                 ),
                 // Ikon-stil: vit, 20px
                 child: IconTheme(
-                  data: const IconThemeData(color: Colors.white, size: 20),
+                  data: IconThemeData(color: widget.iconColor, size: buttonIconSize),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,

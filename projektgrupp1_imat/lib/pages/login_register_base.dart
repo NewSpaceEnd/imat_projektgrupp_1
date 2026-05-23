@@ -5,6 +5,9 @@ import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:imat_app/widgets/primary_action_button.dart';
 
+const double loginRegisterBaseTitleTextSize = 22.0;
+const double loginRegisterBaseStepTextSize = 11.0;
+
 // Base class for step-based login/register pages
 abstract class LoginRegisterBasePage extends StatefulWidget {
   const LoginRegisterBasePage({super.key});
@@ -48,7 +51,7 @@ abstract class LoginRegisterBaseState<T extends LoginRegisterBasePage> extends S
             children: [
               Text(
                 getPageTitle(),
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: loginRegisterBaseTitleTextSize, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 24),
               _buildProgressIndicator(),
@@ -149,7 +152,7 @@ abstract class LoginRegisterBaseState<T extends LoginRegisterBasePage> extends S
                     steps[index],
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: loginRegisterBaseStepTextSize,
                       fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),

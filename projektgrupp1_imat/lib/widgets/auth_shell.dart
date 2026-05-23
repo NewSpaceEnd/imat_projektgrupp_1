@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 
+const double authShellTitleTextSize = 30.0;
+const double authShellSubtitleTextSize = 14.0;
+
 class AuthShell extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -65,14 +68,14 @@ class AuthShell extends StatelessWidget {
                         Text(
                           title,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
+                          style: const TextStyle(fontSize: authShellTitleTextSize, fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 10),
                         Text(
                           subtitle,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: authShellSubtitleTextSize,
                             color: Colors.grey.shade700,
                             height: 1.35,
                           ),

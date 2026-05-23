@@ -6,6 +6,11 @@ import 'package:provider/provider.dart';
 import 'package:imat_app/pages/main_view.dart';
 import 'package:imat_app/pages/search_results.dart';
 
+const double topNavBarProfileLabelTextSize = 15.0;
+const double topNavBarCartTotalTextSize = 20.0;
+const double topNavBarCartCountTextSize = 16.0;
+const double topNavBarTitleTextSize = 18.0;
+
 class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   static const double serviceFee = 25.0;
@@ -51,7 +56,7 @@ class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
                 );
               },
             )
-          : Text(title!),
+          : Text(title!, style: const TextStyle(fontSize: topNavBarTitleTextSize, fontWeight: FontWeight.w600)),
       // Always show the logo on the left. Logo tap resets selection and
       // navigates back to main view (same behaviour as on the main page).
       leading: SizedBox(
@@ -101,37 +106,50 @@ class _ProfileCircleButton extends StatelessWidget {
     final isLoggedIn = handler.getUser().userName.isNotEmpty;
     final userName = isLoggedIn ? handler.getUser().userName : 'Logga in';
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Material(
-          color: const Color(0xFFD9CDF7),
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: isLoggedIn
-                ? onTap
-                : () => Navigator.pushNamed(context, '/login'),
-            child: const SizedBox(
-              width: 56,
-              height: 56,
-              child: Icon(Icons.person, size: 32, color: Color(0xFF2E2E34)),
+    // Visual: top = circular lavender avatar, bottom = rectangular label
+    // that looks like a button. Functionally both are one tappable area.
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: isLoggedIn ? onTap : () => Navigator.pushNamed(context, '/login'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Circular avatar (visual button)
+            Material(
+              color: const Color(0xFFD9CDF7),
+              shape: const CircleBorder(),
+              child: SizedBox(
+                width: 56,
+                height: 56,
+                child: Icon(Icons.person, size: 32, color: const Color(0xFF2E2E34)),
+              ),
             ),
-          ),
+            const SizedBox(height: 8),
+            // Rectangular label (visual separate button) but inside same InkWell
+            Container(
+              width: 78,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD9CDF7), // same lavender as avatar
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFD9CDF7)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Text(
+                userName,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: topNavBarProfileLabelTextSize, fontWeight: FontWeight.w500, color: Color(0xFF2E2E34)),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        SizedBox(
-          width: 70,
-          child: Text(
-            userName,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -176,7 +194,7 @@ class _CartSummaryButton extends StatelessWidget {
                 '${total.toStringAsFixed(0)} kr',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: topNavBarCartTotalTextSize,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -193,7 +211,7 @@ class _CartSummaryButton extends StatelessWidget {
                   itemCount.toInt().toString(),
                   style: const TextStyle(
                     color: Color(0xFF2E2E34),
-                    fontSize: 13,
+                    fontSize: topNavBarCartCountTextSize,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

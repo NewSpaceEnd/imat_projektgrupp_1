@@ -6,6 +6,14 @@ import 'package:imat_app/util/date_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 
+const double orderConfirmationTitleTextSize = 40.0;
+const double orderConfirmationSubtitleTextSize = 20.0;
+const double orderConfirmationOrderLabelTextSize = 24.0;
+const double orderConfirmationOrderNoteTextSize = 20.0;
+const double orderConfirmationSectionTitleTextSize = 24.0;
+const double orderConfirmationProductPriceTextSize = 18.0;
+const double orderConfirmationButtonTextSize = 20.0;
+
 class OrderConfirmationPage extends StatelessWidget {
   static const double serviceFee = 25.0;
   static const Color accentPurple = Color(0xFF8B5CF6);
@@ -92,7 +100,7 @@ class OrderConfirmationPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: const Text('OK', style: TextStyle(fontSize: orderConfirmationButtonTextSize)),
           ),
         ],
       ),
@@ -148,13 +156,13 @@ class _ConfirmationShell extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: orderConfirmationTitleTextSize, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 15, color: Colors.black87),
+                style: const TextStyle(fontSize: orderConfirmationSubtitleTextSize, color: Colors.black87),
               ),
               if (orderLabel != null) ...[
                 const SizedBox(height: 14),
@@ -170,13 +178,13 @@ class _ConfirmationShell extends StatelessWidget {
                       Text(
                         orderLabel!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                        style: const TextStyle(fontSize: orderConfirmationOrderLabelTextSize, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
                       const Text(
                         'Köpet visas också i din orderhistorik.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 13, color: Colors.black87),
+                        style: TextStyle(fontSize: orderConfirmationOrderNoteTextSize, color: Colors.black87),
                       ),
                     ],
                   ),
@@ -193,7 +201,7 @@ class _ConfirmationShell extends StatelessWidget {
                       ElevatedButton.icon(
                         onPressed: onPrint,
                         icon: const Icon(Icons.print),
-                        label: const Text('Skriv ut kvitto'),
+                        label: const Text('Skriv ut kvitto', style: TextStyle(fontSize: orderConfirmationButtonTextSize)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: OrderConfirmationPage.accentPurple,
                           foregroundColor: Colors.white,
@@ -203,7 +211,7 @@ class _ConfirmationShell extends StatelessWidget {
                       ElevatedButton.icon(
                         onPressed: onEmail,
                         icon: const Icon(Icons.email_outlined),
-                        label: const Text('Skicka på mail'),
+                        label: const Text('Skicka på mail', style: TextStyle(fontSize: orderConfirmationButtonTextSize)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: OrderConfirmationPage.accentPurpleSoft,
                           foregroundColor: const Color(0xFF2E2E34),
@@ -213,7 +221,7 @@ class _ConfirmationShell extends StatelessWidget {
                       ElevatedButton.icon(
                         onPressed: onFax,
                         icon: const Icon(Icons.fax),
-                        label: const Text('Faxa kvitto'),
+                        label: const Text('Faxa kvitto', style: TextStyle(fontSize: orderConfirmationButtonTextSize)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: OrderConfirmationPage.accentPurpleSoft,
                           foregroundColor: const Color(0xFF2E2E34),
@@ -236,7 +244,7 @@ class _ConfirmationShell extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Köpta varor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('Köpta varor', style: TextStyle(fontSize: orderConfirmationSectionTitleTextSize, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 _PurchasedItemsPreview(items: items),
               ],
@@ -251,7 +259,7 @@ class _ConfirmationShell extends StatelessWidget {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: onHomePressed,
-            child: const Text('Till startsidan'),
+            child: const Text('Till startsidan', style: TextStyle(fontSize: orderConfirmationButtonTextSize)),
             style: ElevatedButton.styleFrom(
               backgroundColor: OrderConfirmationPage.accentPurple,
               foregroundColor: Colors.white,
@@ -309,11 +317,7 @@ class _PurchasedItemsPreview extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Pris: ${item.product.price.toStringAsFixed(2)} kr',
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-                Text(
-                  'Rad: ${item.total.toStringAsFixed(2)} kr',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontSize: orderConfirmationProductPriceTextSize, color: Colors.black),
                 ),
               ],
             ),

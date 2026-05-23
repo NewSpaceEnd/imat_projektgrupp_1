@@ -7,6 +7,8 @@ import 'package:imat_app/widgets/product_card.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:imat_app/widgets/category_sort_sidebar.dart';
 
+const double favoritesPageTitleTextSize = 28.0;
+
 class FavoritesPage extends StatelessWidget {
   const FavoritesPage({super.key});
 
@@ -68,7 +70,7 @@ class FavoritesPage extends StatelessWidget {
                 ),
                 child: const Text(
                   'Favoriter',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+                  style: TextStyle(fontSize: favoritesPageTitleTextSize, fontWeight: FontWeight.w800),
                 ),
               ),
               const SizedBox(height: AppTheme.paddingSmall),

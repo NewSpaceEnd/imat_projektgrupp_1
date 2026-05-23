@@ -15,6 +15,7 @@ class CategorySectionWidget extends StatelessWidget {
   final ImatDataHandler iMat;
 
   static const int previewItemCount = 5;
+  static const double sectionTitleFontSize = 45.0;
 
   const CategorySectionWidget({
     required this.title,
@@ -46,12 +47,21 @@ class CategorySectionWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Kategori-rubrik
-              Text(title, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+              Text(title, style: const TextStyle(fontSize: sectionTitleFontSize, fontWeight: FontWeight.bold)),
               // Lila "Till all [kategori]" knapp som navigerar till full kategori-vy
               SizedBox(
                 width: 200,
                 child: PrimaryActionButton(
                   label: 'Till all $title',
+                  textColor: const Color(0xFF2E2E34),
+                  iconColor: const Color(0xFF2E2E34),
+                  baseTopColor: const Color(0xFFD9CDF7),
+                  baseBottomColor: const Color(0xFFCBB8F4),
+                  hoverTopColor: const Color(0xFFE2D8FB),
+                  hoverBottomColor: const Color(0xFFD2C1F7),
+                  pressedTopColor: const Color(0xFFCABBF0),
+                  pressedBottomColor: const Color(0xFFB8A5EA),
+                  borderColor: const Color(0xFFB9A6E8),
                   onPressed: () => _onSeeAllPressed(context, products),
                 ),
               ),

@@ -4,6 +4,8 @@ import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/widgets/auth_shell.dart';
 import 'package:imat_app/widgets/primary_action_button.dart';
 
+const double loginPageSectionTitleTextSize = 17.0;
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -56,7 +58,7 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             const Text(
               'Inloggningsuppgifter',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: loginPageSectionTitleTextSize, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 14),
             TextFormField(

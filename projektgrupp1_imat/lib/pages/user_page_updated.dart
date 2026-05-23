@@ -19,6 +19,14 @@ import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:imat_app/widgets/primary_action_button.dart';
 import 'package:provider/provider.dart';
 
+const double userPageSavedByTextSize = 12.0;
+const double userPageSidebarTitleTextSize = 22.0;
+const double userPageMenuItemTextSize = 16.0;
+const double userPageCardSectionTitleTextSize = 16.0;
+const double userPageEditButtonTextSize = 16.0;
+const double userPageSaveButtonTextSize = 15.0;
+const double userPageSavedCartNameTextSize = 16.0;
+
 class UserPage extends StatelessWidget {
   const UserPage({super.key});
 
@@ -162,7 +170,7 @@ class UserPage extends StatelessWidget {
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.only(top: 6.0),
-                                  child: Text('Sparad av: $owner', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                  child: Text('Sparad av: $owner', style: const TextStyle(fontSize: userPageSavedByTextSize, color: Colors.black54)),
                                 ),
                               ],
                             );
@@ -295,7 +303,7 @@ class _ProfileSidebar extends StatelessWidget {
         children: [
           const Text(
             'Mina Sidor',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: userPageSidebarTitleTextSize, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           _ProfileMenuItem(label: 'Köphistorik', onTap: onOrdersTap),
@@ -338,7 +346,7 @@ class _ProfileMenuItem extends StatelessWidget {
             width: double.infinity,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: userPageMenuItemTextSize, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -572,7 +580,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                       const SizedBox(height: 22),
                       const Text(
                         'Kortinformation',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                        style: TextStyle(fontSize: userPageCardSectionTitleTextSize, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -675,7 +683,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                               textAlign: TextAlign.center,
                               maxLines: 2,
                               softWrap: true,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.0),
+                              style: const TextStyle(fontSize: userPageEditButtonTextSize, fontWeight: FontWeight.w600, height: 1.0),
                             ),
                           ),
                         ),
@@ -698,7 +706,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                               child: const Text(
                                 'Spara information',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                style: TextStyle(fontSize: userPageSaveButtonTextSize, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
@@ -734,7 +742,7 @@ class _ProfileTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontSize: userPageSavedByTextSize, fontWeight: FontWeight.w600, color: Colors.grey)),
         const SizedBox(height: 4),
         TextFormField(
           controller: controller,
@@ -875,7 +883,7 @@ class _SavedCartCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(savedCart.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(savedCart.name, style: const TextStyle(fontSize: userPageSavedCartNameTextSize, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
             Text('${savedCart.cart.items.length} varor • Sparad ${formatOrderDate(savedCart.savedAt)}'),
             const SizedBox(height: 10),

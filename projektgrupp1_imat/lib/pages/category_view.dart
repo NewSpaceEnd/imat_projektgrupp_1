@@ -9,6 +9,8 @@ import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/widgets/product_card.dart';
 import 'package:imat_app/widgets/category_sort_sidebar.dart';
 
+const double categoryViewTitleTextSize = 28.0;
+
 class CategoryView extends StatefulWidget {
   final String title;
   final ProductCategory category;
@@ -104,7 +106,7 @@ class _CategoryViewState extends State<CategoryView> {
                   ),
                   child: Text(
                     widget.title,
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+                    style: const TextStyle(fontSize: categoryViewTitleTextSize, fontWeight: FontWeight.w800),
                   ),
                 ),
                 const SizedBox(height: AppTheme.paddingSmall),

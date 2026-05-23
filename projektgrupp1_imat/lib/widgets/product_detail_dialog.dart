@@ -5,6 +5,12 @@ import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/model/imat/shopping_item.dart';
 import 'package:imat_app/widgets/cart_quantity_controls.dart';
 
+const double productDetailUpdatedNameTextSize = 30.0;
+const double productDetailUpdatedPriceTextSize = 25.0;
+const double productDetailUpdatedChipTextSize = 20.0;
+const double productDetailUpdatedBlockTitleTextSize = 20.0;
+const double productDetailUpdatedBlockValueTextSize = 18.0;
+
 class ProductDetailDialog extends StatefulWidget {
   final Product product;
   final ImatDataHandler iMat;
@@ -64,21 +70,30 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
               child: Padding(
                 padding: const EdgeInsets.all(AppTheme.paddingLarge),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Row(
                       children: [
                         Expanded(
                           child: Text(
                             widget.product.name,
-                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: productDetailUpdatedNameTextSize, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        TextButton.icon(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
-                          label: const Text('Stäng'),
+                        InkWell(
+                          onTap: () => Navigator.of(context).pop(),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.close, size: 18, color: Color(0xFF3B82F6)),
+                                SizedBox(width: 6),
+                                Text('Stäng', style: TextStyle(color: Color(0xFF3B82F6), fontSize: productDetailUpdatedChipTextSize)),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -87,14 +102,22 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                       height: 280,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF7F8FB),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: const Color(0xFFECEFF3)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       padding: const EdgeInsets.all(AppTheme.paddingSmall),
-                      child: image,
+                      child: ClipRRect(borderRadius: BorderRadius.circular(12), child: image),
                     ),
                     const SizedBox(height: AppTheme.paddingLarge),
+                    // Info chips (match screenshot ordering)
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -106,17 +129,21 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                       ],
                     ),
                     const SizedBox(height: AppTheme.paddingLarge),
+
+                    // Additional fields shown below the chips (Ursprung, Varumärke)
                     _DetailBlock(
                       title: 'Ursprung',
                       value: detail?.origin.isNotEmpty == true ? detail!.origin : 'Saknas',
                     ),
                     _DetailBlock(
                       title: 'Varumärke',
-                      value: detail?.brand.isNotEmpty == true ? detail!.brand : 'Saknas',
+                      value: detail?.brand.isNotEmpty == true ? detail!.brand : widget.product.unit,
                     ),
+
+                    // Main description and contents
                     _DetailBlock(
                       title: 'Beskrivning',
-                      value: detail?.description.isNotEmpty == true ? detail!.description : 'Ingen beskrivning finns för produkten.',
+                      value: detail?.description.isNotEmpty == true ? detail!.description : 'Saknas',
                     ),
                     _DetailBlock(
                       title: 'Innehåll',
@@ -127,7 +154,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                       amountInCart: amountInCart,
                       quantityController: _quantityController,
                       quantityFocusNode: _quantityFocusNode,
-                      onAdd: () => widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0)),
+                      onAdd: () => _handleAddToCart(context),
                       onRemove: () => widget.iMat.shoppingCartUpdate(ShoppingItem(widget.product, amount: 1.0), delta: -1.0),
                       onCommitAmount: _commitQuantity,
                       onBeginEditing: _beginEditingQuantity,
@@ -138,6 +165,43 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _handleAddToCart(BuildContext context) {
+    final isLoggedIn = widget.iMat.getUser().userName.isNotEmpty;
+    if (!isLoggedIn) {
+      _showLoginRequiredDialog(context);
+    } else {
+      widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0));
+    }
+  }
+
+  void _showLoginRequiredDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Logga in krävs', style: TextStyle(fontSize: productDetailUpdatedBlockTitleTextSize, fontWeight: FontWeight.bold)),
+        content: Text('Du behöver logga in för att handla.', style: TextStyle(fontSize: productDetailUpdatedBlockValueTextSize)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Stäng', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context); // Close product dialog too
+              Navigator.pushNamed(context, '/login');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8B5CF6),
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Logga in', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+          ),
+        ],
       ),
     );
   }
@@ -185,15 +249,18 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F6FB),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: const Color(0xFFECEFF3)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 4)),
+        ],
       ),
       child: Text(
         '$label: $value',
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        style: TextStyle(fontSize: productDetailUpdatedChipTextSize, fontWeight: FontWeight.w600, color: Colors.black87),
       ),
     );
   }
@@ -214,12 +281,12 @@ class _DetailBlock extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: productDetailUpdatedBlockTitleTextSize, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(fontSize: 14, height: 1.4),
+            style: TextStyle(fontSize: productDetailUpdatedBlockValueTextSize, height: 1.4),
           ),
         ],
       ),

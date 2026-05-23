@@ -5,6 +5,12 @@ import 'package:imat_app/model/imat/shopping_item.dart';
 import 'package:imat_app/widgets/primary_action_button.dart';
 import 'package:provider/provider.dart';
 
+const double shoppingCartOverlayHeaderTextSize = 30.0;
+const double shoppingCartOverlaySummaryTextSize = 25.0;
+const double shoppingCartOverlayLineItemNameTextSize = 25.0;
+const double shoppingCartOverlayBodyTextSize = 25.0;
+const double shoppingCartOverlaySmallTextSize = 25.0;
+
 Future<void> showShoppingCartOverlay(BuildContext context) {
   return showGeneralDialog<void>(
     context: context,
@@ -90,7 +96,7 @@ class _ShoppingCartOverlayPanel extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Varukorg (${cart.items.length} varor)',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: shoppingCartOverlayHeaderTextSize, fontWeight: FontWeight.bold),
                   ),
                 ),
                 IconButton(
@@ -104,10 +110,10 @@ class _ShoppingCartOverlayPanel extends StatelessWidget {
           const Divider(height: 1),
           Expanded(
             child: cart.items.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Text('Din varukorg är tom'),
+                      padding: const EdgeInsets.all(24),
+                      child: Text('Din varukorg är tom', style: TextStyle(fontSize: shoppingCartOverlayBodyTextSize)),
                     ),
                   )
                 : ListView.builder(
@@ -127,15 +133,15 @@ class _ShoppingCartOverlayPanel extends StatelessWidget {
               elevation: 0,
               child: Padding(
                 padding: const EdgeInsets.all(14),
-                child: Column(
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Varor totalt
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Varor totalt'),
-                        Text('${cartTotal.toStringAsFixed(2)} kr'),
+                        Text('Varor totalt', style: TextStyle(fontSize: shoppingCartOverlayBodyTextSize)),
+                        Text('${cartTotal.toStringAsFixed(2)} kr', style: TextStyle(fontSize: shoppingCartOverlayBodyTextSize)),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -143,8 +149,8 @@ class _ShoppingCartOverlayPanel extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Serviceavgift'),
-                        Text('${serviceFee.toStringAsFixed(2)} kr'),
+                        Text('Serviceavgift', style: TextStyle(fontSize: shoppingCartOverlayBodyTextSize)),
+                        Text('${serviceFee.toStringAsFixed(2)} kr', style: TextStyle(fontSize: shoppingCartOverlayBodyTextSize)),
                       ],
                     ),
                     const Divider(height: 18),
@@ -152,13 +158,13 @@ class _ShoppingCartOverlayPanel extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Att betala',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: shoppingCartOverlaySummaryTextSize, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           '${totalWithService.toStringAsFixed(2)} kr',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: shoppingCartOverlaySummaryTextSize, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -234,15 +240,15 @@ class _CartLineItem extends StatelessWidget {
                 children: [
                   Text(
                     item.product.name,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: shoppingCartOverlayLineItemNameTextSize, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     item.product.unit,
-                    style: const TextStyle(color: Colors.black54),
+                    style: TextStyle(fontSize: shoppingCartOverlaySmallTextSize, color: Colors.black54),
                   ),
                   const SizedBox(height: 4),
-                  Text('${item.total.toStringAsFixed(2)} kr'),
+                  Text('${item.total.toStringAsFixed(2)} kr', style: TextStyle(fontSize: shoppingCartOverlayBodyTextSize)),
                 ],
               ),
             ),
@@ -252,7 +258,7 @@ class _CartLineItem extends StatelessWidget {
               children: [
                 TextButton(
                   onPressed: () => iMat.shoppingCartRemove(item),
-                  child: const Text('Ta bort'),
+                  child: Text('Ta bort', style: TextStyle(fontSize: shoppingCartOverlaySmallTextSize)),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -267,7 +273,7 @@ class _CartLineItem extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       child: Text(
                         item.amount.toStringAsFixed(0),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: shoppingCartOverlaySmallTextSize),
                       ),
                     ),
                     IconButton(
