@@ -10,7 +10,7 @@ const double categorySidebarHighlightedItemTextSize = 18.0;
 /// Visar Favoriter och Specialerbjudanden överst (med pekarkursor),
 /// sedan en divider, och därunder alla produktkategorier.
 /// Markerar den aktiva kategorin med lila bakgrund.
-class CategorySidebar extends StatelessWidget {
+class CategorySidebar extends StatefulWidget {
   final ProductCategory? activeCategory;
   final bool favoritesActive;
   final bool specialOffersActive;
@@ -29,6 +29,54 @@ class CategorySidebar extends StatelessWidget {
   });
 
   @override
+  State<CategorySidebar> createState() => _CategorySidebarState();
+}
+
+class _CategorySidebarState extends State<CategorySidebar> {
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _favKey = GlobalKey();
+  final GlobalKey _offersKey = GlobalKey();
+  final Map<ProductCategory, GlobalKey> _categoryKeys = {};
+
+  @override
+  void initState() {
+    super.initState();
+    for (final cat in orderedCategories.where((c) => c != ProductCategory.UNDEFINED)) {
+      _categoryKeys[cat] = GlobalKey();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant CategorySidebar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToActiveIfNeeded());
+  }
+
+  void _scrollToActiveIfNeeded() {
+    try {
+      if (widget.favoritesActive && _favKey.currentContext != null) {
+        Scrollable.ensureVisible(_favKey.currentContext!, duration: const Duration(milliseconds: 250), alignment: 0.3);
+        return;
+      }
+
+      if (widget.specialOffersActive && _offersKey.currentContext != null) {
+        Scrollable.ensureVisible(_offersKey.currentContext!, duration: const Duration(milliseconds: 250), alignment: 0.3);
+        return;
+      }
+
+      final cat = widget.activeCategory;
+      if (cat != null && _categoryKeys.containsKey(cat)) {
+        final key = _categoryKeys[cat];
+        if (key?.currentContext != null) {
+          Scrollable.ensureVisible(key!.currentContext!, duration: const Duration(milliseconds: 250), alignment: 0.35);
+        }
+      }
+    } catch (_) {
+      // ignore scroll errors silently
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Skapar en 220px bred sidopanel med grå bakgrund
     return ConstrainedBox(
@@ -41,6 +89,7 @@ class CategorySidebar extends StatelessWidget {
         ),
         // Gör contentet scrollbart om det blir långt
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,19 +103,19 @@ class CategorySidebar extends StatelessWidget {
                 ),
               ),
               // Favoriter-knapp (prominent med chevron och hover-effekt)
-              _SidebarItem(
+              Container(key: _favKey, child: _SidebarItem(
                 label: 'Favoriter',
-                isHighlighted: favoritesActive,
-                onTap: onFavoritesTap,
+                isHighlighted: widget.favoritesActive,
+                onTap: widget.onFavoritesTap,
                 prominent: true,
-              ),
+              )),
               // Specialerbjudanden-knapp (prominent med chevron och hover-effekt)
-              _SidebarItem(
+              Container(key: _offersKey, child: _SidebarItem(
                 label: 'Specialerbjudanden',
-                isHighlighted: specialOffersActive,
-                onTap: onSpecialOffersTap,
+                isHighlighted: widget.specialOffersActive,
+                onTap: widget.onSpecialOffersTap,
                 prominent: true,
-              ),
+              )),
               const SizedBox(height: 8),
               // Visuell skiljelinje mellan special items och regular categories
               const Divider(thickness: 1, color: Colors.grey),
@@ -75,10 +124,13 @@ class CategorySidebar extends StatelessWidget {
               ...orderedCategories
                   .where((cat) => cat != ProductCategory.UNDEFINED)
                   .map(
-                    (cat) => _SidebarItem(
-                      label: getCategoryName(cat),
-                      isHighlighted: activeCategory == cat,
-                      onTap: () => onCategoryTap(cat),
+                    (cat) => Container(
+                      key: _categoryKeys[cat],
+                      child: _SidebarItem(
+                        label: getCategoryName(cat),
+                        isHighlighted: widget.activeCategory == cat,
+                        onTap: () => widget.onCategoryTap(cat),
+                      ),
                     ),
                   )
                   .toList(),

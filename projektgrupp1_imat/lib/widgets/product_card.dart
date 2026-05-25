@@ -194,20 +194,70 @@ class _ProductCardState extends State<ProductCard> {
               // Add button (full width)
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: CartQuantityControls(
-                  amountInCart: amountInCart,
-                  quantityController: _quantityController,
-                  quantityFocusNode: _quantityFocusNode,
-                  onAdd: () => widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0)),
-                  onRemove: () => widget.iMat.shoppingCartUpdate(ShoppingItem(widget.product), delta: -1.0),
-                  onCommitAmount: _commitQuantity,
-                  onBeginEditing: _beginEditingQuantity,
-                ),
+                  child: CartQuantityControls(
+                    amountInCart: amountInCart,
+                    quantityController: _quantityController,
+                    quantityFocusNode: _quantityFocusNode,
+                    onAdd: () => _handleAddToCart(context),
+                    onRemove: () => widget.iMat.shoppingCartUpdate(ShoppingItem(widget.product), delta: -1.0),
+                    onCommitAmount: _commitQuantity,
+                    onBeginEditing: _beginEditingQuantity,
+                  ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  void _handleAddToCart(BuildContext context) {
+    final isLoggedIn = widget.iMat.getUser().userName.isNotEmpty;
+    if (isLoggedIn) {
+      widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0));
+      return;
+    }
+    if (widget.iMat.suppressLoginPrompt) {
+      widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0));
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: AlertDialog(
+            title: Text('Logga in rekommenderas', style: TextStyle(fontSize: productDetailUpdatedBlockTitleTextSize, fontWeight: FontWeight.bold)),
+            content: Text('Du är inte inloggad. Vill du logga in för att spara dina köp under din profil? Du kan också fortsätta utan inloggning, men då sparas inga köp under din profil.', style: TextStyle(fontSize: productDetailUpdatedBlockValueTextSize)),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: const Color(0xFF3B82F6)),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Avbryt', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: const Color(0xFF3B82F6)),
+                onPressed: () {
+                  // Remember user's choice and continue without login
+                  widget.iMat.setSuppressLoginPrompt(true);
+                  widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0));
+                  Navigator.of(ctx).pop();
+                },
+                child: Text('Fortsätt utan inloggning', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), foregroundColor: Colors.white),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.pushNamed(context, '/login');
+                },
+                child: Text('Logga in', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

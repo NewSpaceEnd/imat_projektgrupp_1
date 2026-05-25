@@ -6,10 +6,10 @@ import 'package:imat_app/model/imat/shopping_item.dart';
 import 'package:imat_app/widgets/cart_quantity_controls.dart';
 
 const double productDetailUpdatedNameTextSize = 30.0;
-const double productDetailUpdatedPriceTextSize = 25.0;
-const double productDetailUpdatedChipTextSize = 20.0;
+const double productDetailUpdatedPriceTextSize = 30.0;
+const double productDetailUpdatedChipTextSize = 32.0;
 const double productDetailUpdatedBlockTitleTextSize = 20.0;
-const double productDetailUpdatedBlockValueTextSize = 18.0;
+const double productDetailUpdatedBlockValueTextSize = 20.0;
 
 class ProductDetailDialog extends StatefulWidget {
   final Product product;
@@ -65,7 +65,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
           }
 
           return ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
+            constraints: const BoxConstraints(maxWidth: 960),
             child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(AppTheme.paddingLarge),
@@ -116,7 +116,7 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                       padding: const EdgeInsets.all(AppTheme.paddingSmall),
                       child: ClipRRect(borderRadius: BorderRadius.circular(12), child: image),
                     ),
-                    const SizedBox(height: AppTheme.paddingLarge),
+                    const SizedBox(height: AppTheme.paddingMedium),
                     // Info chips (match screenshot ordering)
                     Wrap(
                       spacing: 8,
@@ -172,6 +172,11 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
   void _handleAddToCart(BuildContext context) {
     final isLoggedIn = widget.iMat.getUser().userName.isNotEmpty;
     if (!isLoggedIn) {
+      if (widget.iMat.suppressLoginPrompt) {
+        widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0));
+        return;
+      }
+
       _showLoginRequiredDialog(context);
     } else {
       widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0));
@@ -181,27 +186,43 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
   void _showLoginRequiredDialog(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Logga in krävs', style: TextStyle(fontSize: productDetailUpdatedBlockTitleTextSize, fontWeight: FontWeight.bold)),
-        content: Text('Du behöver logga in för att handla.', style: TextStyle(fontSize: productDetailUpdatedBlockValueTextSize)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Stäng', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+      builder: (context) => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: AlertDialog(
+            title: Text('Logga in krävs', style: TextStyle(fontSize: productDetailUpdatedBlockTitleTextSize, fontWeight: FontWeight.bold)),
+            content: Text('Du är inte inloggad. Vill du logga in för att spara dina köp under din profil? Du kan fortsätta utan inloggning men då sparas inga köp under din profil.', style: TextStyle(fontSize: productDetailUpdatedBlockValueTextSize)),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: const Color(0xFF3B82F6)),
+                onPressed: () => Navigator.pop(context),
+                child: Text('Avbryt', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: const Color(0xFF3B82F6)),
+                onPressed: () {
+                  // Remember user's choice and continue anonymously without showing this dialog again
+                  widget.iMat.setSuppressLoginPrompt(true);
+                  widget.iMat.shoppingCartAdd(ShoppingItem(widget.product, amount: 1.0));
+                  Navigator.pop(context);
+                },
+                child: Text('Fortsätt utan inloggning', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context); // Close product dialog too
+                  Navigator.pushNamed(context, '/login');
+                },
+                child: Text('Logga in', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context); // Close product dialog too
-              Navigator.pushNamed(context, '/login');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B5CF6),
-              foregroundColor: Colors.white,
-            ),
-            child: Text('Logga in', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -248,19 +269,21 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Make info chips 25% smaller than the default chip text size
+    final chipScale = 0.75;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 14 * chipScale, vertical: 8 * chipScale),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: const Color(0xFFECEFF3)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8 * chipScale, offset: Offset(0, 4 * chipScale)),
         ],
       ),
       child: Text(
         '$label: $value',
-        style: TextStyle(fontSize: productDetailUpdatedChipTextSize, fontWeight: FontWeight.w600, color: Colors.black87),
+        style: TextStyle(fontSize: productDetailUpdatedChipTextSize * chipScale, fontWeight: FontWeight.w600, color: Colors.black87),
       ),
     );
   }

@@ -32,15 +32,17 @@ class ShoppingCartPage extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.shopping_cart_outlined, size: 72, color: Colors.grey),
-                const SizedBox(height: 12),
+                const Icon(Icons.shopping_cart_outlined, size: 132, color: Colors.grey),
+                const SizedBox(height: 18),
                 const Text(
                   'Din varukorg är tom',
                   textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 18),
                 SizedBox(
-                  width: double.infinity,
+                  width: 280,
+                  height: 58,
                   child: PrimaryActionButton(
                     onPressed: () => Navigator.pushReplacementNamed(context, '/'),
                     label: 'Fortsätt handla',

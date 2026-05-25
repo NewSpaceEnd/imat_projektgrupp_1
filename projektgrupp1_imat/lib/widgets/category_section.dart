@@ -44,25 +44,35 @@ class CategorySectionWidget extends StatelessWidget {
         children: [
           // Rubrik med kategori-namn och "Till all" knapp
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Kategori-rubrik
-              Text(title, style: const TextStyle(fontSize: sectionTitleFontSize, fontWeight: FontWeight.bold)),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: sectionTitleFontSize, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 12),
               // Lila "Till all [kategori]" knapp som navigerar till full kategori-vy
-              SizedBox(
-                width: 200,
-                child: PrimaryActionButton(
-                  label: 'Till all $title',
-                  textColor: const Color(0xFF2E2E34),
-                  iconColor: const Color(0xFF2E2E34),
-                  baseTopColor: const Color(0xFFD9CDF7),
-                  baseBottomColor: const Color(0xFFCBB8F4),
-                  hoverTopColor: const Color(0xFFE2D8FB),
-                  hoverBottomColor: const Color(0xFFD2C1F7),
-                  pressedTopColor: const Color(0xFFCABBF0),
-                  pressedBottomColor: const Color(0xFFB8A5EA),
-                  borderColor: const Color(0xFFB9A6E8),
-                  onPressed: () => _onSeeAllPressed(context, products),
+              Align(
+                alignment: Alignment.centerRight,
+                child: IntrinsicWidth(
+                  child: PrimaryActionButton(
+                    label: 'Till all $title',
+                    textColor: const Color(0xFF2E2E34),
+                    iconColor: const Color(0xFF2E2E34),
+                    baseTopColor: const Color(0xFFD9CDF7),
+                    baseBottomColor: const Color(0xFFCBB8F4),
+                    hoverTopColor: const Color(0xFFE2D8FB),
+                    hoverBottomColor: const Color(0xFFD2C1F7),
+                    pressedTopColor: const Color(0xFFCABBF0),
+                    pressedBottomColor: const Color(0xFFB8A5EA),
+                    borderColor: const Color(0xFFB9A6E8),
+                    onPressed: () => _onSeeAllPressed(context, products),
+                  ),
                 ),
               ),
             ],

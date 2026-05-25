@@ -35,6 +35,17 @@ class ImatDataHandler extends ChangeNotifier {
     _setUp();
   }
 
+  // If true, the UI should not show the "please login" recommendation dialog
+  // anymore during this session — the user chose to continue without logging in.
+  bool _suppressLoginPrompt = false;
+
+  bool get suppressLoginPrompt => _suppressLoginPrompt;
+
+  void setSuppressLoginPrompt(bool value) {
+    _suppressLoginPrompt = value;
+    notifyListeners();
+  }
+
   // Never changing, only loaded on startup
   List<Product> get products => _products;
 

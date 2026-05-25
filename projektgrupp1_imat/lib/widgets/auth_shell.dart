@@ -9,12 +9,16 @@ class AuthShell extends StatelessWidget {
   final String subtitle;
   final Widget child;
   final double maxWidth;
+  final double titleTextSize;
+  final double subtitleTextSize;
 
   const AuthShell({
     required this.title,
     required this.subtitle,
     required this.child,
     this.maxWidth = 420,
+    this.titleTextSize = authShellTitleTextSize,
+    this.subtitleTextSize = authShellSubtitleTextSize,
     super.key,
   });
 
@@ -68,14 +72,14 @@ class AuthShell extends StatelessWidget {
                         Text(
                           title,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: authShellTitleTextSize, fontWeight: FontWeight.w700),
+                          style: TextStyle(fontSize: titleTextSize, fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 10),
                         Text(
                           subtitle,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: authShellSubtitleTextSize,
+                            fontSize: subtitleTextSize,
                             color: Colors.grey.shade700,
                             height: 1.35,
                           ),

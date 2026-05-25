@@ -1,13 +1,10 @@
 // Profilsida som visar:
-// - Användarens personlig information (namn, email, telefon, adress, etc.)
-// - Sparade varukorgar (hämtade från servern)
-// - Köphistorik - alla ordrar för inloggad användare (hämtade från servern)
-// - Utloggning-knapp
-//
-// Om användaren inte är inloggad, redirectar vi till huvudsidan.
+// - Användarens personliga information
+// - Sparade varukorgar
+// - Köphistorik
+// - Utloggning
 
 import 'package:flutter/material.dart';
-import 'package:imat_app/app_theme.dart';
 import 'package:imat_app/model/imat/credit_card.dart';
 import 'package:imat_app/model/imat/customer.dart';
 import 'package:imat_app/model/imat/order.dart';
@@ -15,17 +12,21 @@ import 'package:imat_app/model/imat/saved_shopping_cart.dart';
 import 'package:imat_app/model/imat_data_handler.dart';
 import 'package:imat_app/pages/main_view.dart';
 import 'package:imat_app/util/date_formatter.dart';
-import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:imat_app/widgets/primary_action_button.dart';
+import 'package:imat_app/widgets/top_nav_bar.dart';
+import 'package:imat_app/widgets/product_detail_dialog.dart';
 import 'package:provider/provider.dart';
 
 const double userPageSavedByTextSize = 12.0;
 const double userPageSidebarTitleTextSize = 22.0;
 const double userPageMenuItemTextSize = 16.0;
 const double userPageCardSectionTitleTextSize = 16.0;
-const double userPageEditButtonTextSize = 16.0;
 const double userPageSaveButtonTextSize = 15.0;
 const double userPageSavedCartNameTextSize = 16.0;
+const double userPageProfileFieldLabelTextSize = 16.0;
+const double userPageProfileFieldTextSize = 19.0;
+const double userPageProfileFieldCornerRadius = 10.0;
+const EdgeInsets userPageProfileFieldContentPadding = EdgeInsets.symmetric(horizontal: 14, vertical: 10);
 
 class UserPage extends StatelessWidget {
   const UserPage({super.key});
@@ -64,20 +65,14 @@ class UserPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Expanded(
-                        child: _ProfileContent(
-                          customer: customer,
-                          creditCard: creditCard,
-                        ),
-                      ),
+                      Expanded(child: _ProfileContent(customer: customer, creditCard: creditCard)),
                     ],
                   )
                 : Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(width: 8),
                       SizedBox(
-                        width: 190,
+                        width: 245,
                         child: _ProfileSidebar(
                           onOrdersTap: () => _showOrders(context, handler),
                           onSavedCartsTap: () => _showSavedCarts(context),
@@ -88,12 +83,7 @@ class UserPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Expanded(
-                        child: _ProfileContent(
-                          customer: customer,
-                          creditCard: creditCard,
-                        ),
-                      ),
+                      Expanded(child: _ProfileContent(customer: customer, creditCard: creditCard)),
                     ],
                   ),
           );
@@ -102,110 +92,145 @@ class UserPage extends StatelessWidget {
     );
   }
 
-  /// Visar dialog med alla sparade varukorgar för inloggad användare
-  /// Hämtar sparade varukorgar från servern
-  /// Användaren kan:
-  /// - Se varje sparad varukorg med namn och datum
-  /// - Klicka "lägg till i varukorgen" för att återställa en sparad varukorg
-  /// - Klicka "Ta bort" för att ta bort en sparad varukorg
   void _showSavedCarts(BuildContext context) {
     final handler = context.read<ImatDataHandler>();
 
-    // Fetch saved carts directly from server (no local cache)
-    Future<List<Map<String, dynamic>>> loader() async {
-      return await handler.fetchSavedShoppingCartsFromServer();
-    }
-
     showDialog<void>(
       context: context,
-      builder: (context) => FutureBuilder<List<Map<String, dynamic>>>(
-        future: loader(),
-        builder: (context, snapshot) {
-          final aggregated = <Map<String, dynamic>>[];
-          if (snapshot.hasData) {
-            aggregated.addAll(snapshot.data!);
-            aggregated.sort((a, b) {
+      builder: (dialogContext) {
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: handler.fetchSavedShoppingCartsFromServer(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const AlertDialog(
+                title: Text('Sparade varukorgar'),
+                content: SizedBox(
+                  width: 200,
+                  height: 80,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+
+            final carts = List<Map<String, dynamic>>.from(snapshot.data ?? const []);
+            carts.sort((a, b) {
               try {
-                final aDate = DateTime.parse((a['cart'] as Map)['savedAt'] as String);
-                final bDate = DateTime.parse((b['cart'] as Map)['savedAt'] as String);
+                final aDate = DateTime.parse((a['cart'] as Map<String, dynamic>)['savedAt'] as String);
+                final bDate = DateTime.parse((b['cart'] as Map<String, dynamic>)['savedAt'] as String);
                 return bDate.compareTo(aDate);
               } catch (_) {
                 return 0;
               }
             });
-          }
 
-          return AlertDialog(
-            title: const Text('Sparade varukorgar'),
-            content: snapshot.connectionState != ConnectionState.done
-                ? const SizedBox(width: 200, height: 80, child: Center(child: CircularProgressIndicator()))
-                : aggregated.isEmpty
-                    ? const Text('Inga sparade varukorgar.')
-                    : SizedBox(
-                        width: double.maxFinite,
-                        child: ListView.separated(
-                          shrinkWrap: true,
-                          itemCount: aggregated.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final entry = aggregated[index];
-                            final map = entry['cart'] as Map<String, dynamic>;
-                            final owner = entry['owner'] as String;
-                            final cart = SavedShoppingCart.fromJson(map);
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _SavedCartCard(
-                                  savedCart: cart,
-                                  onRestore: () {
-                                    context.read<ImatDataHandler>().addSavedShoppingCartToShoppingCart(cart);
+            return AlertDialog(
+              title: const Text('Sparade varukorgar'),
+              content: carts.isEmpty
+                  ? const Text('Inga sparade varukorgar.')
+                  : SizedBox(
+                      width: double.maxFinite,
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: carts.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final entry = carts[index];
+                          final cartData = entry['cart'] as Map<String, dynamic>;
+                          final owner = entry['owner'] as String;
+                          final savedCart = SavedShoppingCart.fromJson(cartData);
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _SavedCartCard(
+                                savedCart: savedCart,
+                                onRestore: () {
+                                  final handler = context.read<ImatDataHandler>();
+                                  final isLoggedIn = handler.getUser().userName.isNotEmpty;
+                                  if (isLoggedIn) {
+                                    handler.addSavedShoppingCartToShoppingCart(savedCart);
                                     Navigator.pop(context);
-                                    // Snackbar intentionally removed per user preference.
-                                  },
-                                  onDelete: () async {
-                                    context.read<ImatDataHandler>().removeSavedShoppingCart(cart.name);
-                                    Navigator.pop(context);
-                                    _showSavedCarts(context);
-                                  },
+                                    return;
+                                  }
+
+                                  showDialog<void>(
+                                    context: context,
+                                    builder: (ctx) => Center(
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(maxWidth: 900),
+                                        child: AlertDialog(
+                                          title: Text('Logga in rekommenderas', style: TextStyle(fontSize: productDetailUpdatedBlockTitleTextSize, fontWeight: FontWeight.bold)),
+                                          content: Text('Du är inte inloggad. Vill du logga in för att spara dina köp under din profil? Du kan fortsätta utan inloggning, men då sparas inga köp under din profil.', style: TextStyle(fontSize: productDetailUpdatedBlockValueTextSize)),
+                                          actions: [
+                                            TextButton(
+                                              style: TextButton.styleFrom(foregroundColor: const Color(0xFF3B82F6)),
+                                              onPressed: () => Navigator.of(ctx).pop(),
+                                              child: Text('Avbryt', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+                                            ),
+                                            TextButton(
+                                              style: TextButton.styleFrom(foregroundColor: const Color(0xFF3B82F6)),
+                                              onPressed: () {
+                                                // remember user's choice and continue without login
+                                                handler.setSuppressLoginPrompt(true);
+                                                handler.addSavedShoppingCartToShoppingCart(savedCart);
+                                                Navigator.of(ctx).pop();
+                                                Navigator.pop(context);
+                                              },
+                                              child: Text('Fortsätt utan inloggning', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), foregroundColor: Colors.white),
+                                              onPressed: () {
+                                                Navigator.of(ctx).pop();
+                                                Navigator.pop(context);
+                                                Navigator.pushNamed(context, '/login');
+                                              },
+                                              child: Text('Logga in', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                onDelete: () async {
+                                  context.read<ImatDataHandler>().removeSavedShoppingCart(savedCart.name);
+                                  Navigator.pop(context);
+                                  _showSavedCarts(context);
+                                },
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  'Sparad av: $owner',
+                                  style: const TextStyle(fontSize: userPageSavedByTextSize, color: Colors.black54),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 6.0),
-                                  child: Text('Sparad av: $owner', style: const TextStyle(fontSize: userPageSavedByTextSize, color: Colors.black54)),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
-            actions: [
-              SizedBox(
-                width: double.infinity,
-                child: PrimaryActionButton(
-                  label: 'Stäng',
-                  onPressed: () => Navigator.pop(context),
+                    ),
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: PrimaryActionButton(label: 'Stäng', onPressed: () => Navigator.pop(dialogContext)),
                 ),
-              ),
-            ],
-          );
-        },
-      ),
+              ],
+            );
+          },
+        );
+      },
     );
-
-    
   }
 
-  /// Visar dialog med köphistorik (alla ordrar) för inloggad användare
-  /// Hämtar ordrar från servern sorterade från nyaste till äldsta
-  /// Visar för varje order:
-  /// - Ordernummer
-  /// - Orderdatum
-  /// - Total belopp
-  void _showOrders(BuildContext context, ImatDataHandler handler) async {
+  Future<void> _showOrders(BuildContext context, ImatDataHandler handler) async {
     final orders = await handler.getAllOrders();
+    if (!context.mounted) return;
 
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Köphistorik'),
         content: orders.isEmpty
             ? const Text('Inga ordrar hittades.')
@@ -217,29 +242,60 @@ class UserPage extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final order = orders[index];
-                    return _OrderExpansionCard(
+                      return _OrderExpansionCard(
                       order: order,
-                      onBuyAgain: () async {
-                        await context.read<ImatDataHandler>().addOrderToShoppingCart(order);
-                        if (!context.mounted) return;
-                        Navigator.pop(context);
-                        // Snackbar intentionally removed per user preference.
+                      onBuyAgain: () {
+                        final handler = context.read<ImatDataHandler>();
+                        final isLoggedIn = handler.getUser().userName.isNotEmpty;
+                        if (isLoggedIn) {
+                          handler.addOrderToShoppingCart(order);
+                          Navigator.pop(context);
+                          return;
+                        }
+
+                        showDialog<void>(
+                          context: context,
+                          builder: (ctx) => Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 900),
+                              child: AlertDialog(
+                                title: Text('Logga in rekommenderas', style: TextStyle(fontSize: productDetailUpdatedBlockTitleTextSize, fontWeight: FontWeight.bold)),
+                                content: Text('Du är inte inloggad. Vill du logga in för att spara dina köp under din profil? Du kan fortsätta utan inloggning, men då sparas inga köp under din profil.', style: TextStyle(fontSize: productDetailUpdatedBlockValueTextSize)),
+                                actions: [
+                                  TextButton(
+                                    style: TextButton.styleFrom(foregroundColor: const Color(0xFF3B82F6)),
+                                    onPressed: () => Navigator.of(ctx).pop(),
+                                    child: Text('Avbryt', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+                                  ),
+                                  TextButton(
+                                    style: TextButton.styleFrom(foregroundColor: const Color(0xFF3B82F6)),
+                                    onPressed: () {
+                                      // remember user's choice and continue without login
+                                      handler.setSuppressLoginPrompt(true);
+                                      handler.addOrderToShoppingCart(order);
+                                      Navigator.of(ctx).pop();
+                                      Navigator.pop(context);
+                                    },
+                                    child: Text('Fortsätt utan inloggning', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), foregroundColor: Colors.white),
+                                    onPressed: () {
+                                      Navigator.of(ctx).pop();
+                                      Navigator.pop(context);
+                                      Navigator.pushNamed(context, '/login');
+                                    },
+                                    child: Text('Logga in', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
                       },
-                      onPrint: () => _showOrderAction(
-                        context,
-                        'Utskrift',
-                        'Det här är ett exempel på att skicka ordern till skrivaren.',
-                      ),
-                      onEmail: () => _showOrderAction(
-                        context,
-                        'E-post',
-                        'Det här är ett exempel på att skicka ordern via e-post.',
-                      ),
-                      onFax: () => _showOrderAction(
-                        context,
-                        'Fax',
-                        'Det här är ett exempel på att faxa orderkvitto.',
-                      ),
+                      onPrint: () => _showOrderAction(context, 'Utskrift', 'Det här är ett exempel på att skriva ut orderkvitto.'),
+                      onEmail: () => _showOrderAction(context, 'E-post', 'Det här är ett exempel på att skicka ordern via e-post.'),
+                      onFax: () => _showOrderAction(context, 'Fax', 'Det här är ett exempel på att faxa orderkvitto.'),
                     );
                   },
                 ),
@@ -247,10 +303,7 @@ class UserPage extends StatelessWidget {
         actions: [
           SizedBox(
             width: double.infinity,
-            child: PrimaryActionButton(
-              label: 'Stäng',
-              onPressed: () => Navigator.pop(context),
-            ),
+            child: PrimaryActionButton(label: 'Stäng', onPressed: () => Navigator.pop(dialogContext)),
           ),
         ],
       ),
@@ -260,16 +313,13 @@ class UserPage extends StatelessWidget {
   void _showOrderAction(BuildContext context, String title, String message) {
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(title),
         content: Text(message),
         actions: [
           SizedBox(
             width: double.infinity,
-            child: PrimaryActionButton(
-              label: 'OK',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
+            child: PrimaryActionButton(label: 'OK', onPressed: () => Navigator.of(dialogContext).pop()),
           ),
         ],
       ),
@@ -291,24 +341,53 @@ class _ProfileSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       decoration: BoxDecoration(
-        color: const Color(0xFFEDEDED),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade300),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF7F2FF), Color(0xFFE9E2FF)],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFBFA8FF), width: 1.2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 22, offset: const Offset(0, 10)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Mina Sidor',
-            style: TextStyle(fontSize: userPageSidebarTitleTextSize, fontWeight: FontWeight.bold),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.72),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.dashboard_rounded, color: Color(0xFF5F38D1), size: 30),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Mina sidor',
+                        style: TextStyle(fontSize: userPageSidebarTitleTextSize, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(height: 14),
+          _ProfileMenuItem(label: 'Köphistorik', icon: Icons.receipt_long_rounded, onTap: onOrdersTap),
           const SizedBox(height: 8),
-          _ProfileMenuItem(label: 'Köphistorik', onTap: onOrdersTap),
-          _ProfileMenuItem(label: 'Sparade varukorgar', onTap: onSavedCartsTap),
-          const SizedBox(height: 12),
+          _ProfileMenuItem(label: 'Sparade varukorgar', icon: Icons.shopping_bag_rounded, onTap: onSavedCartsTap),
+          const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -329,25 +408,33 @@ class _ProfileSidebar extends StatelessWidget {
 
 class _ProfileMenuItem extends StatelessWidget {
   final String label;
+  final IconData icon;
   final VoidCallback onTap;
 
-  const _ProfileMenuItem({required this.label, required this.onTap});
+  const _ProfileMenuItem({required this.label, required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+    return Material(
+      color: Colors.white.withOpacity(0.7),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: SizedBox(
-            width: double.infinity,
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: userPageMenuItemTextSize, fontWeight: FontWeight.w600),
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, color: const Color(0xFF5F38D1), size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: userPageMenuItemTextSize, fontWeight: FontWeight.w700),
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.black45, size: 20),
+            ],
           ),
         ),
       ),
@@ -368,7 +455,6 @@ class _ProfileContent extends StatefulWidget {
 class _ProfileContentState extends State<_ProfileContent> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
-  final _phoneNumberController = TextEditingController();
   final _mobilePhoneNumberController = TextEditingController();
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
@@ -380,18 +466,20 @@ class _ProfileContentState extends State<_ProfileContent> {
   final _cardMonthController = TextEditingController();
   final _cardYearController = TextEditingController();
   final _cardCvcController = TextEditingController();
-  bool _isEditing = false;
+
+  bool _hasPendingChanges = false;
 
   @override
   void initState() {
     super.initState();
     _syncFromCustomer();
+    _registerListeners();
   }
 
   @override
   void didUpdateWidget(covariant _ProfileContent oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isEditing) {
+    if (!_hasPendingChanges) {
       _syncFromCustomer();
     }
   }
@@ -400,7 +488,6 @@ class _ProfileContentState extends State<_ProfileContent> {
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
-    _phoneNumberController.dispose();
     _mobilePhoneNumberController.dispose();
     _emailController.dispose();
     _addressController.dispose();
@@ -415,10 +502,29 @@ class _ProfileContentState extends State<_ProfileContent> {
     super.dispose();
   }
 
+  void _registerListeners() {
+    for (final controller in [
+      _firstNameController,
+      _lastNameController,
+      _mobilePhoneNumberController,
+      _emailController,
+      _addressController,
+      _postCodeController,
+      _postAddressController,
+      _cardTypeController,
+      _cardHolderController,
+      _cardNumberController,
+      _cardMonthController,
+      _cardYearController,
+      _cardCvcController,
+    ]) {
+      controller.addListener(_updateDirtyState);
+    }
+  }
+
   void _syncFromCustomer() {
     _firstNameController.text = widget.customer.firstName;
     _lastNameController.text = widget.customer.lastName;
-    _phoneNumberController.text = widget.customer.phoneNumber;
     _mobilePhoneNumberController.text = widget.customer.mobilePhoneNumber;
     _emailController.text = widget.customer.email;
     _addressController.text = widget.customer.address;
@@ -432,18 +538,41 @@ class _ProfileContentState extends State<_ProfileContent> {
     _cardCvcController.text = widget.creditCard.verificationCode.toString();
   }
 
+  void _updateDirtyState() {
+    final hasChanges =
+        _firstNameController.text != widget.customer.firstName ||
+        _lastNameController.text != widget.customer.lastName ||
+        _mobilePhoneNumberController.text != widget.customer.mobilePhoneNumber ||
+        _emailController.text != widget.customer.email ||
+        _addressController.text != widget.customer.address ||
+        _postCodeController.text != widget.customer.postCode ||
+        _postAddressController.text != widget.customer.postAddress ||
+        _cardTypeController.text != widget.creditCard.cardType ||
+        _cardHolderController.text != widget.creditCard.holdersName ||
+        _cardNumberController.text != widget.creditCard.cardNumber ||
+        _cardMonthController.text != widget.creditCard.validMonth.toString() ||
+        _cardYearController.text != widget.creditCard.validYear.toString() ||
+        _cardCvcController.text != widget.creditCard.verificationCode.toString();
+
+    if (hasChanges != _hasPendingChanges && mounted) {
+      setState(() => _hasPendingChanges = hasChanges);
+    }
+  }
+
   Future<void> _saveCustomer() async {
     final handler = context.read<ImatDataHandler>();
+
     final updatedCustomer = Customer(
       _firstNameController.text.trim(),
       _lastNameController.text.trim(),
-      _phoneNumberController.text.trim(),
+      '',
       _mobilePhoneNumberController.text.trim(),
       _emailController.text.trim(),
       _addressController.text.trim(),
       _postCodeController.text.trim(),
       _postAddressController.text.trim(),
     );
+
     final updatedCard = CreditCard(
       _cardTypeController.text.trim(),
       _cardHolderController.text.trim(),
@@ -457,265 +586,129 @@ class _ProfileContentState extends State<_ProfileContent> {
     await handler.setCreditCard(updatedCard);
     if (!mounted) return;
 
-    setState(() => _isEditing = false);
-    // Snackbar intentionally removed per user preference.
+    setState(() => _hasPendingChanges = false);
+    _syncFromCustomer();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: _isEditing ? Colors.white : const Color(0xFFEDEDED),
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: _isEditing ? const Color(0xFF8B5CF6) : Colors.grey.shade300,
-          width: _isEditing ? 2 : 1,
+          color: _hasPendingChanges ? const Color(0xFF8B5CF6) : Colors.grey.shade300,
+          width: _hasPendingChanges ? 2 : 1,
         ),
-        boxShadow: _isEditing
-            ? [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ]
+        boxShadow: _hasPendingChanges
+            ? [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 18, offset: const Offset(0, 8))]
             : null,
       ),
       child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _firstNameController,
-                              label: 'Förnamn',
-                              enabled: _isEditing,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _lastNameController,
-                              label: 'Efternamn',
-                              enabled: _isEditing,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _emailController,
-                              label: 'E-post',
-                              enabled: _isEditing,
-                              keyboardType: TextInputType.emailAddress,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _phoneNumberController,
-                              label: 'Telefonnummer',
-                              enabled: _isEditing,
-                              keyboardType: TextInputType.phone,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _mobilePhoneNumberController,
-                              label: 'Mobilnummer',
-                              enabled: _isEditing,
-                              keyboardType: TextInputType.phone,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _addressController,
-                              label: 'Adress',
-                              enabled: _isEditing,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _postCodeController,
-                              label: 'Postnummer',
-                              enabled: _isEditing,
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _postAddressController,
-                              label: 'Postort',
-                              enabled: _isEditing,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 22),
-                      const Text(
-                        'Kortinformation',
-                        style: TextStyle(fontSize: userPageCardSectionTitleTextSize, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _cardTypeController,
-                              label: 'Korttyp',
-                              enabled: _isEditing,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _cardHolderController,
-                              label: 'Kortinnehavare',
-                              enabled: _isEditing,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _cardNumberController,
-                              label: 'Kortnummer',
-                              enabled: _isEditing,
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _cardCvcController,
-                              label: 'CVC',
-                              enabled: _isEditing,
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _cardMonthController,
-                              label: 'Giltig månad',
-                              enabled: _isEditing,
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ProfileTextField(
-                              controller: _cardYearController,
-                              label: 'Giltigt år',
-                              enabled: _isEditing,
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                        ],
-                      ),
+                      Expanded(child: _ProfileTextField(controller: _firstNameController, label: 'Förnamn', enabled: true)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _ProfileTextField(controller: _lastNameController, label: 'Efternamn', enabled: true)),
                     ],
                   ),
-                ),
-                const SizedBox(width: 20),
-                SizedBox(
-                  width: 220,
-                  child: Column(
+                  const SizedBox(height: 16),
+                  Row(
                     children: [
-                      const SizedBox(height: 24),
-                      Container(
-                        width: 205,
-                        height: 205,
-                        decoration: BoxDecoration(
-                          color: _isEditing ? const Color(0xFFE8E0FF) : const Color(0xFFBCA9F7),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.person, size: 138, color: Color(0xFF2E3236)),
-                      ),
-                      const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.center,
-                        child: SizedBox(
-                          width: 160,
-                          height: 60,
-                          child: ElevatedButton(
-                            onPressed: () => setState(() => _isEditing = !_isEditing),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _isEditing ? const Color(0xFFE2D7FF) : const Color(0xFFBCA9F7),
-                              foregroundColor: const Color(0xFF2E2E34),
-                              elevation: 3,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                            child: Text(
-                              _isEditing ? 'Avbryt' : 'Redigera\ninformation',
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              softWrap: true,
-                              style: const TextStyle(fontSize: userPageEditButtonTextSize, fontWeight: FontWeight.w600, height: 1.0),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (_isEditing) ...[
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.center,
-                          child: SizedBox(
-                            width: 160,
-                            height: 52,
-                            child: ElevatedButton(
-                              onPressed: _saveCustomer,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF5F38D1),
-                                foregroundColor: Colors.white,
-                                elevation: 3,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              ),
-                              child: const Text(
-                                'Spara information',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: userPageSaveButtonTextSize, fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      Expanded(child: _ProfileTextField(controller: _emailController, label: 'E-post', enabled: true, keyboardType: TextInputType.emailAddress)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _ProfileTextField(controller: _mobilePhoneNumberController, label: 'Mobilnummer', enabled: true, keyboardType: TextInputType.phone)),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  _ProfileTextField(controller: _addressController, label: 'Adress', enabled: true),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: _ProfileTextField(controller: _postCodeController, label: 'Postnummer', enabled: true, keyboardType: TextInputType.number)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _ProfileTextField(controller: _postAddressController, label: 'Postort', enabled: true)),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  const Text(
+                    'Kortinformation',
+                    style: TextStyle(fontSize: userPageCardSectionTitleTextSize, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _ProfileTextField(controller: _cardTypeController, label: 'Korttyp', enabled: true)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _ProfileTextField(controller: _cardHolderController, label: 'Kortinnehavare', enabled: true)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: _ProfileTextField(controller: _cardNumberController, label: 'Kortnummer', enabled: true, keyboardType: TextInputType.number)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _ProfileTextField(controller: _cardCvcController, label: 'CVC', enabled: true, keyboardType: TextInputType.number)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: _ProfileTextField(controller: _cardMonthController, label: 'Giltig månad', enabled: true, keyboardType: TextInputType.number)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _ProfileTextField(controller: _cardYearController, label: 'Giltigt år', enabled: true, keyboardType: TextInputType.number)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 20),
+            SizedBox(
+              width: 220,
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  Container(
+                    width: 205,
+                    height: 205,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _hasPendingChanges ? const Color(0xFFE8E0FF) : const Color(0xFFBCA9F7),
+                    ),
+                    child: const Icon(Icons.person, size: 138, color: Color(0xFF2E3236)),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: 170,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: _hasPendingChanges ? _saveCustomer : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _hasPendingChanges ? const Color(0xFF5F38D1) : const Color(0xFFE0E0E0),
+                        foregroundColor: _hasPendingChanges ? Colors.white : Colors.black54,
+                        disabledBackgroundColor: const Color(0xFFE0E0E0),
+                        disabledForegroundColor: Colors.black54,
+                        elevation: _hasPendingChanges ? 3 : 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: const Text(
+                        'Spara information',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: userPageSaveButtonTextSize, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -742,33 +735,33 @@ class _ProfileTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: userPageSavedByTextSize, fontWeight: FontWeight.w600, color: Colors.grey)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: userPageProfileFieldLabelTextSize, fontWeight: FontWeight.w600, color: Colors.grey),
+        ),
         const SizedBox(height: 4),
         TextFormField(
           controller: controller,
           enabled: enabled,
           readOnly: !enabled,
           keyboardType: keyboardType,
-          style: TextStyle(
-            color: enabled ? Colors.black87 : Colors.black87,
-            fontWeight: enabled ? FontWeight.w400 : FontWeight.w500,
-          ),
+          style: const TextStyle(fontSize: userPageProfileFieldTextSize, color: Colors.black87, fontWeight: FontWeight.w400),
           decoration: InputDecoration(
             filled: true,
             fillColor: enabled ? Colors.white : const Color(0xFFF1F1F1),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(userPageProfileFieldCornerRadius),
               borderSide: BorderSide(color: enabled ? const Color(0xFFB7B7B7) : const Color(0xFFA9A9A9)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(userPageProfileFieldCornerRadius),
               borderSide: BorderSide(color: enabled ? const Color(0xFFB7B7B7) : const Color(0xFFA9A9A9)),
             ),
             disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(userPageProfileFieldCornerRadius),
               borderSide: const BorderSide(color: Color(0xFFA9A9A9)),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            contentPadding: userPageProfileFieldContentPadding,
           ),
         ),
       ],
@@ -776,7 +769,7 @@ class _ProfileTextField extends StatelessWidget {
   }
 }
 
-class _OrderExpansionCard extends StatefulWidget {
+class _OrderExpansionCard extends StatelessWidget {
   final Order order;
   final VoidCallback onBuyAgain;
   final VoidCallback onPrint;
@@ -792,61 +785,81 @@ class _OrderExpansionCard extends StatefulWidget {
   });
 
   @override
-  State<_OrderExpansionCard> createState() => _OrderExpansionCardState();
-}
-
-class _OrderExpansionCardState extends State<_OrderExpansionCard> {
-  bool _expanded = false;
-
-  @override
   Widget build(BuildContext context) {
+    final orderTotal = order.items.fold<double>(0.0, (sum, it) => sum + it.amount * it.product.price);
     return Card(
       child: ExpansionTile(
-        onExpansionChanged: (value) => setState(() => _expanded = value),
-        title: Text('Order #${widget.order.orderNumber}'),
-        subtitle: Text('${formatOrderDate(widget.order.date)} • ${widget.order.items.length} varor'),
+        title: Text('Order #${order.orderNumber}'),
+        subtitle: Text('${formatOrderDate(order.date)} • ${order.items.length} varor'),
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ...widget.order.items.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(child: Text(item.product.name)),
-                        Text('${item.amount.toStringAsFixed(2)} ${item.product.unit}'),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                SizedBox(
+                  height: 170,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: order.items.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, idx) {
+                      final item = order.items[idx];
+                      return Container(
+                        width: 150,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Center(
+                                child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: context.read<ImatDataHandler>().getImage(item.product),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              item.product.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text('Antal: ${item.amount.toStringAsFixed(0)}', style: const TextStyle(color: Colors.black54)),
+                            const SizedBox(height: 4),
+                            Text('${item.product.price.toStringAsFixed(2)} kr', style: const TextStyle(fontSize: 14, color: Colors.black)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Totalt: ${orderTotal.toStringAsFixed(2)} kr', style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     ElevatedButton.icon(
-                      onPressed: widget.onBuyAgain,
+                      onPressed: onBuyAgain,
                       icon: const Icon(Icons.shopping_cart),
                       label: const Text('Köp igen'),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), foregroundColor: Colors.white),
                     ),
-                    ElevatedButton.icon(
-                      onPressed: widget.onPrint,
-                      icon: const Icon(Icons.print),
-                      label: const Text('Skriv ut'),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: widget.onEmail,
-                      icon: const Icon(Icons.email),
-                      label: const Text('E-post'),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: widget.onFax,
-                      icon: const Icon(Icons.fax),
-                      label: const Text('Fax'),
-                    ),
+                    ElevatedButton.icon(onPressed: onPrint, icon: const Icon(Icons.print), label: const Text('Skriv ut')),
+                    ElevatedButton.icon(onPressed: onEmail, icon: const Icon(Icons.email), label: const Text('E-post')),
+                    ElevatedButton.icon(onPressed: onFax, icon: const Icon(Icons.fax), label: const Text('Fax')),
                   ],
                 ),
               ],
@@ -858,12 +871,6 @@ class _OrderExpansionCardState extends State<_OrderExpansionCard> {
   }
 }
 
-/// Widget som visar en enskild sparad varukorg i ett Card
-/// Visar:
-/// - Namn på varukorgen
-/// - Antal varor och sparat-datum
-/// - "Ta bort" och "lägg till i varukorgen" knappar
-/// - Vilken användare som sparade den (ägare)
 class _SavedCartCard extends StatelessWidget {
   final SavedShoppingCart savedCart;
   final VoidCallback onRestore;
@@ -887,6 +894,53 @@ class _SavedCartCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text('${savedCart.cart.items.length} varor • Sparad ${formatOrderDate(savedCart.savedAt)}'),
             const SizedBox(height: 10),
+            if (savedCart.cart.items.isNotEmpty) ...[
+              SizedBox(
+                height: 170,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: savedCart.cart.items.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, idx) {
+                    final item = savedCart.cart.items[idx];
+                    return Container(
+                      width: 150,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: AspectRatio(
+                                aspectRatio: 1,
+                                  child: context.watch<ImatDataHandler>().getImage(item.product),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            item.product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text('Antal: ${item.amount.toStringAsFixed(0)}', style: const TextStyle(color: Colors.black54)),
+                          const SizedBox(height: 4),
+                          Text('${item.product.price.toStringAsFixed(2)} kr', style: const TextStyle(fontSize: 14, color: Colors.black)),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             Row(
               children: [
                 Expanded(

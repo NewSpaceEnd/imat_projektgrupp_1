@@ -12,7 +12,7 @@ import 'package:provider/provider.dart';
 const double checkoutStepLabelTextSize = 22.0; // Size for the text under each progress step at the top.
 const double checkoutSectionTitleTextSize = 25.0; // Size for the section headings like "Personlig information".
 const double checkoutSummaryTitleTextSize = 25.0; // Size for the summary title on the review page.
-const double checkoutEmptyStateTextSize = 15.0; // Text size for the empty-cart message.
+const double checkoutEmptyStateTextSize = 20.0; // Text size for the empty-cart message.
 const double checkoutSaveCartButtonTextSize = 20.0; // Text size for the save-cart button.
 const double checkoutNavButtonTextSize = 20.0; // Text size for the navigation buttons like "Tillbaka" and "Nästa".
 const double checkoutStepperNumberTextSize = 20.0; // Number text size inside the stepper circles.
@@ -83,6 +83,7 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
   int _currentStep = 0; // Aktuellt steg i checkout-flödet (0-3)
   late AnimationController _animationController; // För steg-övergångar
   bool _cartSaved = false; // Visar status för "Spara varukorg"-knappen
+  final _stepKeys = List.generate(4, (_) => GlobalKey<FormState>());
 
   final _formKey = GlobalKey<FormState>(); // Form-validering för alla input
   final _savedCartName = TextEditingController(); // Namn på sparad varukorg (om sparning)
@@ -185,7 +186,7 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
   }
 
   Future<void> _placeOrder(ImatDataHandler iMat) async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_stepKeys[3].currentState!.validate()) return;
 
     if (iMat.getShoppingCart().items.isEmpty) {
       // Snackbar intentionally removed per user preference; keep user on page.
@@ -236,7 +237,6 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
     final cart = iMat.getShoppingCart();
     final cartTotal = iMat.shoppingCartTotal();
     final totalWithService = cartTotal + (cart.items.isEmpty ? 0 : serviceFee);
-
     if (cart.items.isEmpty) {
       return Scaffold(
         appBar: const TopNavBar(),
@@ -250,10 +250,18 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
                 const SizedBox(height: 12),
                 const Text('Lägg till minst en vara innan du går till kassan.', textAlign: TextAlign.center, style: TextStyle(fontSize: checkoutEmptyStateTextSize)),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: PrimaryActionButton(onPressed: () => Navigator.pushReplacementNamed(context, '/cart'), label: 'Till varukorgen', textSize: checkoutSaveCartButtonTextSize),
-                ),
+                LayoutBuilder(builder: (context, constraints) {
+                  final double btnWidth = constraints.maxWidth > 380 ? 340 : constraints.maxWidth * 0.9;
+                  return SizedBox(
+                    width: btnWidth,
+                    height: 58,
+                    child: PrimaryActionButton(
+                      onPressed: () => Navigator.pushReplacementNamed(context, '/cart'),
+                      label: 'Till varukorgen',
+                      textSize: checkoutSaveCartButtonTextSize,
+                    ),
+                  );
+                }),
               ],
             ),
           ),
@@ -270,87 +278,86 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
           vertical: _currentStep == 3 ? checkoutReviewVerticalPadding : AppTheme.paddingSmall,
         ),
         child: _currentStep == 3
-            ? Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildProgressIndicator(),
-                    const SizedBox(height: 24),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 400),
-                      transitionBuilder: (child, animation) {
-                        return SlideTransition(
-                          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
-                          child: FadeTransition(opacity: animation, child: child),
-                        );
-                      },
-                      child: _buildStepContent(_currentStep, iMat, cartTotal, totalWithService),
-                    ),
-                  ],
-                ),
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildProgressIndicator(),
+                  const SizedBox(height: 24),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    transitionBuilder: (child, animation) {
+                      return SlideTransition(
+                        position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    },
+                    child: _buildStepContent(_currentStep, iMat, cartTotal, totalWithService),
+                  ),
+                ],
               )
             : Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 760),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Progress Indicator
-                        _buildProgressIndicator(),
-                        const SizedBox(height: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Progress Indicator
+                      _buildProgressIndicator(),
+                      const SizedBox(height: 24),
 
-                        // Steps area
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          transitionBuilder: (child, animation) {
-                            return SlideTransition(
-                              position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
-                              child: FadeTransition(opacity: animation, child: child),
-                            );
-                          },
-                          child: _buildStepContent(_currentStep, iMat, cartTotal, totalWithService),
-                        ),
+                      // Steps area
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        transitionBuilder: (child, animation) {
+                          return SlideTransition(
+                            position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
+                            child: FadeTransition(opacity: animation, child: child),
+                          );
+                        },
+                        child: _buildStepContent(_currentStep, iMat, cartTotal, totalWithService),
+                      ),
 
-                        const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                        // Navigation Buttons
-                        Row(
-                          children: [
-                            if (_currentStep > 0)
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () => setState(() => _currentStep--),
-                                  icon: const Icon(Icons.arrow_back, size: checkoutNavIconSize),
-                                  label: const Text('Tillbaka', style: TextStyle(fontSize: checkoutNavButtonTextSize)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey[400],
-                                    foregroundColor: Colors.black,
-                                    minimumSize: const Size.fromHeight(checkoutButtonMinHeight),
-                                    textStyle: const TextStyle(fontSize: checkoutNavButtonTextSize),
-                                  ),
-                                ),
-                              ),
-                            if (_currentStep > 0) const SizedBox(width: 12),
+                      // Navigation Buttons
+                      Row(
+                        children: [
+                          if (_currentStep > 0)
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: () => setState(() => _currentStep++),
-                                label: const Text('Nästa', style: TextStyle(fontSize: checkoutNavButtonTextSize)),
-                                icon: const Icon(Icons.arrow_forward, size: checkoutNavIconSize),
+                                onPressed: () => setState(() => _currentStep--),
+                                icon: const Icon(Icons.arrow_back, size: checkoutNavIconSize),
+                                label: const Text('Tillbaka', style: TextStyle(fontSize: checkoutNavButtonTextSize)),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF8B5CF6),
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: Colors.grey[400],
+                                  foregroundColor: Colors.black,
                                   minimumSize: const Size.fromHeight(checkoutButtonMinHeight),
                                   textStyle: const TextStyle(fontSize: checkoutNavButtonTextSize),
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          if (_currentStep > 0) const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                // Validate current step before advancing
+                                final valid = _stepKeys[_currentStep].currentState?.validate() ?? true;
+                                if (!valid) return;
+                                if (_currentStep < 3) setState(() => _currentStep++);
+                              },
+                              label: const Text('Nästa', style: TextStyle(fontSize: checkoutNavButtonTextSize)),
+                              icon: const Icon(Icons.arrow_forward, size: checkoutNavIconSize),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF8B5CF6),
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size.fromHeight(checkoutButtonMinHeight),
+                                textStyle: const TextStyle(fontSize: checkoutNavButtonTextSize),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -599,21 +606,24 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
 
   // Växlar mellan de fyra checkout-stegen.
   Widget _buildStepContent(int step, ImatDataHandler iMat, double cartTotal, double totalWithService) {
+    Widget content;
     switch (step) {
       case 0:
-        return _buildPersonalInfoStep();
+        content = _buildPersonalInfoStep();
+        break;
       case 1:
-        return _buildAddressStep();
+        content = _buildAddressStep();
+        break;
       case 2:
-        return _buildPaymentStep();
+        content = _buildPaymentStep();
+        break;
       case 3:
         try {
-          return _buildReviewStep(iMat, cartTotal, totalWithService);
+          content = _buildReviewStep(iMat, cartTotal, totalWithService);
         } catch (e, st) {
-          // Log for debugging, and show a safe fallback UI instead of crashing.
           debugPrint('Checkout review build error: $e');
           debugPrint('$st');
-          return _buildStepCard(
+          content = _buildStepCard(
             key: const ValueKey(999),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -627,9 +637,12 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
             ),
           );
         }
+        break;
       default:
-        return const SizedBox();
+        content = const SizedBox();
     }
+
+    return Form(key: _stepKeys[step], child: content);
   }
 
   // Steg 0: kundens egna uppgifter.

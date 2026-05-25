@@ -182,7 +182,7 @@ class _ConfirmationShell extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'Köpet visas också i din orderhistorik.',
+                        'Köpet visas också i din orderhistorik under din profil.',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: orderConfirmationOrderNoteTextSize, color: Colors.black87),
                       ),

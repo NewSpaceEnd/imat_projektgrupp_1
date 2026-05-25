@@ -6,7 +6,7 @@ import 'package:imat_app/pages/main_view.dart';
 import 'package:imat_app/pages/favorites_view.dart';
 import 'package:imat_app/pages/checkout.dart';
 import 'package:imat_app/pages/shopping_cart.dart';
-import 'package:imat_app/pages/user_page.dart';
+import 'package:imat_app/pages/user_page_updated.dart';
 import 'package:imat_app/pages/order_confirmation.dart';
 import 'package:imat_app/pages/login_page.dart';
 import 'package:imat_app/pages/register_page.dart';
