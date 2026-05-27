@@ -69,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return AuthShell(
       title: 'Login',
-      subtitle: 'Logga in för att fortsätta till dina sparade varor, orderhistorik och kassan.',
+      subtitle: '',
       titleTextSize: loginPageTitleTextSize,
       subtitleTextSize: loginPageSubtitleTextSize,
       child: Form(

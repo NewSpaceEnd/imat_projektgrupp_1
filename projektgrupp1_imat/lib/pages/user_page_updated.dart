@@ -15,6 +15,7 @@ import 'package:imat_app/util/date_formatter.dart';
 import 'package:imat_app/widgets/primary_action_button.dart';
 import 'package:imat_app/widgets/top_nav_bar.dart';
 import 'package:imat_app/widgets/product_detail_dialog.dart';
+import 'package:imat_app/widgets/shopping_cart_overlay.dart';
 import 'package:provider/provider.dart';
 
 const double userPageSavedByTextSize = 12.0;
@@ -93,6 +94,7 @@ class UserPage extends StatelessWidget {
   }
 
   void _showSavedCarts(BuildContext context) {
+    final pageContext = context;
     final handler = context.read<ImatDataHandler>();
 
     showDialog<void>(
@@ -150,6 +152,8 @@ class UserPage extends StatelessWidget {
                                   if (isLoggedIn) {
                                     handler.addSavedShoppingCartToShoppingCart(savedCart);
                                     Navigator.pop(context);
+                                    // Open the shopping cart side panel to provide visual feedback
+                                    Future.microtask(() => showShoppingCartOverlay(pageContext));
                                     return;
                                   }
 
@@ -170,12 +174,13 @@ class UserPage extends StatelessWidget {
                                             TextButton(
                                               style: TextButton.styleFrom(foregroundColor: const Color(0xFF3B82F6)),
                                               onPressed: () {
-                                                // remember user's choice and continue without login
-                                                handler.setSuppressLoginPrompt(true);
-                                                handler.addSavedShoppingCartToShoppingCart(savedCart);
-                                                Navigator.of(ctx).pop();
-                                                Navigator.pop(context);
-                                              },
+                                                      // remember user's choice and continue without login
+                                                      handler.setSuppressLoginPrompt(true);
+                                                      handler.addSavedShoppingCartToShoppingCart(savedCart);
+                                                      Navigator.of(ctx).pop();
+                                                      Navigator.pop(context);
+                                                      Future.microtask(() => showShoppingCartOverlay(pageContext));
+                                                    },
                                               child: Text('Fortsätt utan inloggning', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
                                             ),
                                             ElevatedButton(
@@ -227,6 +232,7 @@ class UserPage extends StatelessWidget {
   Future<void> _showOrders(BuildContext context, ImatDataHandler handler) async {
     final orders = await handler.getAllOrders();
     if (!context.mounted) return;
+    final pageContext = context;
 
     showDialog<void>(
       context: context,
@@ -250,6 +256,7 @@ class UserPage extends StatelessWidget {
                         if (isLoggedIn) {
                           handler.addOrderToShoppingCart(order);
                           Navigator.pop(context);
+                          Future.microtask(() => showShoppingCartOverlay(pageContext));
                           return;
                         }
 
@@ -275,6 +282,7 @@ class UserPage extends StatelessWidget {
                                       handler.addOrderToShoppingCart(order);
                                       Navigator.of(ctx).pop();
                                       Navigator.pop(context);
+                                      Future.microtask(() => showShoppingCartOverlay(pageContext));
                                     },
                                     child: Text('Fortsätt utan inloggning', style: TextStyle(fontSize: productDetailUpdatedChipTextSize)),
                                   ),

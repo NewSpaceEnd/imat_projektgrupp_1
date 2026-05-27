@@ -8,11 +8,13 @@ const double searchBarInputTextSize = 25.0;
 class SearchBarWidget extends StatefulWidget {
   final ImatDataHandler iMat;
   final EdgeInsetsGeometry padding;
+  final double? width;
   final ValueChanged<String>? onSearchSubmitted;
 
   const SearchBarWidget({
     required this.iMat,
     this.padding = const EdgeInsets.symmetric(vertical: AppTheme.paddingSmall),
+    this.width,
     this.onSearchSubmitted,
     super.key,
   });
@@ -48,40 +50,50 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
   Widget build(BuildContext context) {
     return Padding(
       padding: widget.padding,
-      child: TextField(
-        controller: _controller,
-        style: TextStyle(fontSize: searchBarInputTextSize),
-        decoration: InputDecoration(
-          hintText: 'Sök efter produkter',
-          hintStyle: TextStyle(fontSize: searchBarHintTextSize, color: Colors.grey.shade600),
-          prefixIcon: const Icon(Icons.search),
-          filled: true,
-          fillColor: Colors.grey[200],
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          suffixIcon: _controller.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _controller.clear();
-                    // Clear the search state but don't search
-                    widget.iMat.selectAllProducts();
-                    setState(() {});
-                  },
-                )
-              : null,
-        ),
-        onChanged: (query) {
-          // Only update the UI state to show/hide clear button
-          setState(() {});
-        },
-        onSubmitted: (query) {
-          if (query.trim().isNotEmpty) {
-            _onSearchChanged(query);
-            widget.onSearchSubmitted?.call(query);
-          }
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableWidth = constraints.maxWidth.isFinite ? constraints.maxWidth : double.infinity;
+          final effectiveWidth = widget.width == null ? availableWidth : widget.width!.clamp(0.0, availableWidth);
+
+          return SizedBox(
+            width: effectiveWidth,
+            child: TextField(
+              controller: _controller,
+              style: TextStyle(fontSize: searchBarInputTextSize),
+              decoration: InputDecoration(
+                hintText: 'Sök efter produkter',
+                hintStyle: TextStyle(fontSize: searchBarHintTextSize, color: Colors.grey.shade600),
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.grey[200],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                suffixIcon: _controller.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _controller.clear();
+                          // Clear the search state but don't search
+                          widget.iMat.selectAllProducts();
+                          setState(() {});
+                        },
+                      )
+                    : null,
+              ),
+              onChanged: (query) {
+                // Only update the UI state to show/hide clear button
+                setState(() {});
+              },
+              onSubmitted: (query) {
+                if (query.trim().isNotEmpty) {
+                  _onSearchChanged(query);
+                  widget.onSearchSubmitted?.call(query);
+                }
+              },
+            ),
+          );
         },
       ),
     );

@@ -111,7 +111,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return AuthShell(
       title: 'Skapa konto',
-      subtitle: 'Tre steg så att dina uppgifter, adress och betalning redan är klara när du kommer till kassan.',
+      subtitle: '',
       maxWidth: 720,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

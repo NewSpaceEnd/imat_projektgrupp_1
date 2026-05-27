@@ -17,6 +17,7 @@ class ProductCard extends StatefulWidget {
   static const double unitTextSize = 18.0;
   static const double priceTextSize = 25.0;
   static const double ecoBadgeTextSize = 18.0;
+  static const double favoriteIconSize = 36.0;
 
   const ProductCard(this.product, this.iMat, {super.key});
 
@@ -85,11 +86,12 @@ class _ProductCardState extends State<ProductCard> {
                             ),
                             IconButton(
                               visualDensity: VisualDensity.compact,
-                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                               padding: EdgeInsets.zero,
                               icon: Icon(
                                 widget.iMat.isFavorite(widget.product) ? Icons.favorite : Icons.favorite_border,
                                 color: widget.iMat.isFavorite(widget.product) ? Colors.red : Colors.grey,
+                                size: ProductCard.favoriteIconSize,
                               ),
                               onPressed: () => widget.iMat.toggleFavorite(widget.product),
                               tooltip: widget.iMat.isFavorite(widget.product) ? 'Ta bort favorit' : 'Lägg till favorit',

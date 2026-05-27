@@ -9,13 +9,31 @@ import 'package:imat_app/widgets/category_sort_sidebar.dart';
 
 const double specialOffersTitleTextSize = 28.0;
 
-class SpecialOffersPage extends StatelessWidget {
+class SpecialOffersPage extends StatefulWidget {
   const SpecialOffersPage({super.key});
 
+  @override
+  State<SpecialOffersPage> createState() => _SpecialOffersPageState();
+}
+
+class _SpecialOffersPageState extends State<SpecialOffersPage> {
+  CategorySortMode _sortMode = CategorySortMode.relevance;
+
   List<Product> _specialOffers(ImatDataHandler iMat) {
-    final sorted = [...iMat.products]..sort((a, b) => a.price.compareTo(b.price));
-    final favoritesIds = iMat.favorites.map((p) => p.productId).toSet();
-    return sorted.where((product) => !favoritesIds.contains(product.productId)).toList();
+    final products = iMat.products.where((p) => !iMat.favorites.map((f) => f.productId).contains(p.productId)).toList();
+    switch (_sortMode) {
+      case CategorySortMode.relevance:
+        return products;
+      case CategorySortMode.priceHighToLow:
+        return [...products]..sort((a, b) => b.price.compareTo(a.price));
+      case CategorySortMode.comparisonPriceHighToLow:
+        return [...products]..sort((a, b) => b.price.compareTo(a.price));
+      case CategorySortMode.campaigns:
+        final sorted = [...products]..sort((a, b) => a.price.compareTo(b.price));
+        if (sorted.length <= 4) return sorted;
+        final limit = (sorted.length * 0.35).ceil().clamp(1, sorted.length);
+        return sorted.take(limit).toList();
+    }
   }
 
   @override
@@ -57,8 +75,8 @@ class SpecialOffersPage extends StatelessWidget {
                 );
 
           final sidebar = CategorySortSidebar(
-            selectedMode: CategorySortMode.relevance,
-            onChanged: (_) {},
+            selectedMode: _sortMode,
+            onChanged: (mode) => setState(() => _sortMode = mode),
           );
 
           final content = Column(

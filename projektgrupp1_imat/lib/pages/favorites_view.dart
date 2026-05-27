@@ -9,13 +9,36 @@ import 'package:imat_app/widgets/category_sort_sidebar.dart';
 
 const double favoritesPageTitleTextSize = 28.0;
 
-class FavoritesPage extends StatelessWidget {
+class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
+
+  @override
+  State<FavoritesPage> createState() => _FavoritesPageState();
+}
+
+class _FavoritesPageState extends State<FavoritesPage> {
+  CategorySortMode _sortMode = CategorySortMode.relevance;
+
+  List<Product> _sortedFavorites(List<Product> favorites) {
+    switch (_sortMode) {
+      case CategorySortMode.relevance:
+        return favorites;
+      case CategorySortMode.priceHighToLow:
+        return [...favorites]..sort((a, b) => b.price.compareTo(a.price));
+      case CategorySortMode.comparisonPriceHighToLow:
+        return [...favorites]..sort((a, b) => b.price.compareTo(a.price));
+      case CategorySortMode.campaigns:
+        final sorted = [...favorites]..sort((a, b) => a.price.compareTo(b.price));
+        if (sorted.length <= 4) return sorted;
+        final limit = (sorted.length * 0.35).ceil().clamp(1, sorted.length);
+        return sorted.take(limit).toList();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final iMat = context.watch<ImatDataHandler>();
-    final favorites = iMat.favorites;
+    final favorites = _sortedFavorites(iMat.favorites);
 
     return Scaffold(
       appBar: const TopNavBar(),
@@ -51,8 +74,8 @@ class FavoritesPage extends StatelessWidget {
                 );
 
           final sidebar = CategorySortSidebar(
-            selectedMode: CategorySortMode.relevance,
-            onChanged: (_) {},
+            selectedMode: _sortMode,
+            onChanged: (mode) => setState(() => _sortMode = mode),
           );
 
           final content = Column(

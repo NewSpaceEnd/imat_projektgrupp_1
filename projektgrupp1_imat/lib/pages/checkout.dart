@@ -82,7 +82,8 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
 
   int _currentStep = 0; // Aktuellt steg i checkout-flödet (0-3)
   late AnimationController _animationController; // För steg-övergångar
-  bool _cartSaved = false; // Visar status för "Spara varukorg"-knappen
+  // The saved-state is now stored in ImatDataHandler and observed via
+  // `iMat.isCurrentCartSaved()` so we don't keep a separate local flag here.
   final _stepKeys = List.generate(4, (_) => GlobalKey<FormState>());
 
   final _formKey = GlobalKey<FormState>(); // Form-validering för alla input
@@ -420,12 +421,7 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
             setSaved: (value) {
               setState(() => saved = value);
             },
-            onSaved: () {
-              // Update parent state to show green button
-              if (mounted) {
-                this.setState(() => _cartSaved = true);
-              }
-            },
+            onSaved: () {},
           );
         });
       },
@@ -892,17 +888,24 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
               label: const Text('Slutför köp'),
             ),
             const SizedBox(height: checkoutReviewSummaryButtonGap),
-            ElevatedButton.icon(
-              onPressed: () => _showSaveDialog(iMat),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _cartSaved ? Colors.green : const Color(0xFF8B5CF6),
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(checkoutButtonMinHeight),
-                textStyle: const TextStyle(fontSize: checkoutSaveCartButtonTextSize),
-              ),
-              icon: const Icon(Icons.save),
-              label: Text(_cartSaved ? 'Sparad' : 'Spara varukorg', style: const TextStyle(fontSize: checkoutSaveCartButtonTextSize)),
-            ),
+            Builder(builder: (ctx) {
+              final saved = iMat.isCurrentCartSaved();
+              return ElevatedButton.icon(
+                onPressed: () {
+                  if (!saved) {
+                    _showSaveDialog(iMat);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: saved ? Colors.green : const Color(0xFF8B5CF6),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(checkoutButtonMinHeight),
+                  textStyle: const TextStyle(fontSize: checkoutSaveCartButtonTextSize),
+                ),
+                icon: const Icon(Icons.save),
+                label: Text(saved ? 'Sparad' : 'Spara varukorg', style: const TextStyle(fontSize: checkoutSaveCartButtonTextSize)),
+              );
+            }),
             const SizedBox(height: checkoutReviewSummaryButtonGap),
             ElevatedButton.icon(
               onPressed: () => setState(() => _currentStep--),

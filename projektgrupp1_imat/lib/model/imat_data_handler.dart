@@ -35,6 +35,11 @@ class ImatDataHandler extends ChangeNotifier {
     _setUp();
   }
 
+  // A lightweight signature of the last saved shopping cart (items + amounts)
+  // Used to detect whether the current shopping cart is identical to the
+  // last saved version so UI can show a persistent "saved" state.
+  String? _lastSavedCartSignature;
+
   // If true, the UI should not show the "please login" recommendation dialog
   // anymore during this session — the user chose to continue without logging in.
   bool _suppressLoginPrompt = false;
@@ -419,6 +424,8 @@ class ImatDataHandler extends ChangeNotifier {
       map[userKey] = existing;
       extras[_savedShoppingCartsByUserKey] = map;
       await InternetHandler.setExtras(extras);
+      // mark the current shopping cart as saved
+      _lastSavedCartSignature = _signatureFromItems(_shoppingCart.items);
       notifyListeners();
     } catch (e) {
       debugPrint('saveShoppingCart: error saving to server: $e');
@@ -468,10 +475,28 @@ class ImatDataHandler extends ChangeNotifier {
       map[userKey] = existing;
       extras[_savedShoppingCartsByUserKey] = map;
       await InternetHandler.setExtras(extras);
+      // mark the saved subset as the last saved signature
+      _lastSavedCartSignature = _signatureFromItems(items);
       notifyListeners();
     } catch (e) {
       debugPrint('saveShoppingCartWithItems: error saving to server: $e');
     }
+  }
+
+  // Compute a stable signature string for a list of ShoppingItems
+  String _signatureFromItems(List<ShoppingItem> items) {
+    // Sort by product id to make signature order-independent
+    final copy = List<ShoppingItem>.from(items);
+    copy.sort((a, b) => a.product.productId.compareTo(b.product.productId));
+    return copy.map((it) => '${it.product.productId}:${it.amount}').join(',');
+  }
+
+  /// Returns true if the currently active shopping cart matches the last
+  /// saved shopping cart signature.
+  bool isCurrentCartSaved() {
+    if (_lastSavedCartSignature == null) return false;
+    final sig = _signatureFromItems(_shoppingCart.items);
+    return sig == _lastSavedCartSignature;
   }
 
   Future<void> _persistSavedShoppingCarts() async {

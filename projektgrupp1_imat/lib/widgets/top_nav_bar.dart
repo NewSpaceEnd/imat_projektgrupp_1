@@ -6,16 +6,19 @@ import 'package:provider/provider.dart';
 import 'package:imat_app/pages/main_view.dart';
 import 'package:imat_app/pages/search_results.dart';
 
-const double topNavBarProfileLabelTextSize = 15.0;
+const double topNavBarProfileLabelTextSize = 18.0; // 1.2x of base 15.0
 const double topNavBarCartTotalTextSize = 20.0;
 const double topNavBarCartCountTextSize = 16.0;
 const double topNavBarTitleTextSize = 18.0;
 
 class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
+  final double? searchBarWidth;
+  final double itemSpacing;
   static const double serviceFee = 25.0;
+  static const double defaultSearchBarWidth = 1420.0;
 
-  const TopNavBar({this.title, super.key});
+  const TopNavBar({this.title, this.searchBarWidth, this.itemSpacing = 16.0, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,76 +26,104 @@ class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
     final isCategoryPage = routeName.startsWith('/category/');
     final showSearch = title == null || isCategoryPage;
     final iMat = context.watch<ImatDataHandler>();
-    final actions = <Widget>[
-      Padding(
-        padding: const EdgeInsets.only(right: 12.0),
-        child: _ProfileCircleButton(
-          onTap: () => Navigator.pushNamed(context, '/user'),
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsets.only(right: 8.0),
-        child: _CartSummaryButton(
-          iMat: context.watch<ImatDataHandler>(),
-          onTap: () => showShoppingCartOverlay(context),
-        ),
-      ),
-    ];
 
     return AppBar(
       toolbarHeight: 110,
       backgroundColor: Colors.transparent,
       elevation: 0,
-      leadingWidth: 120,
-      titleSpacing: 16,
-      title: showSearch
-          ? SearchBarWidget(
-              iMat: iMat,
-              padding: EdgeInsets.zero,
-              onSearchSubmitted: (query) {
-                FocusScope.of(context).unfocus();
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SearchResultsPage()),
-                );
-              },
-            )
-          : Text(title!, style: const TextStyle(fontSize: topNavBarTitleTextSize, fontWeight: FontWeight.w600)),
-      // Always show the logo on the left. Logo tap resets selection and
-      // navigates back to main view (same behaviour as on the main page).
-      leading: SizedBox(
-        width: 120,
-        child: InkWell(
-          onTap: () {
-            FocusScope.of(context).unfocus();
-            final iMat = Provider.of<ImatDataHandler>(context, listen: false);
-            iMat.selectAllProducts();
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const MainView()),
-              (route) => false,
-            );
-          },
-          child: Center(
-            child: Image.asset(
-              'assets/images/imatlogo.png',
-              fit: BoxFit.contain,
-              width: 100,
-              height: 100,
-              errorBuilder: (context, error, stackTrace) => Image.asset(
-                'assets/images/placeholder.png',
-                width: 100,
-                height: 100,
-                fit: BoxFit.contain,
+      titleSpacing: 0,
+      centerTitle: false,
+      leading: const SizedBox.shrink(),
+      actions: const [],
+      title: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _LogoButton(onTap: () {
+              FocusScope.of(context).unfocus();
+              final iMat = Provider.of<ImatDataHandler>(context, listen: false);
+              iMat.selectAllProducts();
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const MainView()),
+                (route) => false,
+              );
+            }),
+            SizedBox(width: itemSpacing),
+            Flexible(
+              fit: FlexFit.loose,
+              child: SizedBox(
+                width: searchBarWidth ?? defaultSearchBarWidth,
+                child: showSearch
+                    ? SearchBarWidget(
+                        iMat: iMat,
+                        padding: EdgeInsets.zero,
+                        width: searchBarWidth ?? defaultSearchBarWidth,
+                        onSearchSubmitted: (query) {
+                          FocusScope.of(context).unfocus();
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const SearchResultsPage()),
+                          );
+                        },
+                      )
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          title!,
+                          textAlign: TextAlign.left,
+                          style: const TextStyle(fontSize: topNavBarTitleTextSize, fontWeight: FontWeight.w600),
+                        ),
+                      ),
               ),
             ),
-          ),
+            SizedBox(width: itemSpacing),
+            _ProfileCircleButton(
+              onTap: () => Navigator.pushNamed(context, '/user'),
+            ),
+            SizedBox(width: itemSpacing),
+            _CartSummaryButton(
+              iMat: iMat,
+              onTap: () => showShoppingCartOverlay(context),
+            ),
+          ],
         ),
       ),
-      actions: actions,
     );
   }
 
   @override
   Size get preferredSize => const Size.fromHeight(110);
+}
+
+class _LogoButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _LogoButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 120,
+      child: InkWell(
+        onTap: onTap,
+        child: Center(
+          child: Image.asset(
+            'assets/images/imatlogo.png',
+            fit: BoxFit.contain,
+            width: 100,
+            height: 100,
+            errorBuilder: (context, error, stackTrace) => Image.asset(
+              'assets/images/placeholder.png',
+              width: 100,
+              height: 100,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ProfileCircleButton extends StatelessWidget {
@@ -104,7 +135,13 @@ class _ProfileCircleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final handler = Provider.of<ImatDataHandler>(context);
     final isLoggedIn = handler.getUser().userName.isNotEmpty;
-    final userName = isLoggedIn ? handler.getUser().userName : 'Logga in';
+    // Prefer to show the customer's first name under the profile icon.
+    // Fallback to the userName (username/email) and finally 'Logga in'.
+    final customer = handler.getCustomer();
+    final user = handler.getUser();
+    final displayName = customer.firstName.isNotEmpty
+      ? customer.firstName
+      : (user.userName.isNotEmpty ? user.userName : 'Logga in');
 
     // Visual: top = circular lavender avatar, bottom = rectangular label
     // that looks like a button. Functionally both are one tappable area.
@@ -140,7 +177,7 @@ class _ProfileCircleButton extends StatelessWidget {
                 ],
               ),
               child: Text(
-                userName,
+                displayName,
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
