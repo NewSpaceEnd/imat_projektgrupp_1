@@ -794,7 +794,8 @@ class _OrderExpansionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final orderTotal = order.items.fold<double>(0.0, (sum, it) => sum + it.amount * it.product.price);
+    final handler = context.read<ImatDataHandler>();
+    final orderTotal = order.items.fold<double>(0.0, (sum, it) => sum + it.amount * handler.displayPrice(it.product));
     return Card(
       child: ExpansionTile(
         title: Text('Order #${order.orderNumber}'),
@@ -842,7 +843,10 @@ class _OrderExpansionCard extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text('Antal: ${item.amount.toStringAsFixed(0)}', style: const TextStyle(color: Colors.black54)),
                             const SizedBox(height: 4),
-                            Text('${item.product.price.toStringAsFixed(2)} kr', style: const TextStyle(fontSize: 14, color: Colors.black)),
+                            Text(
+                              '${handler.displayPrice(item.product).toStringAsFixed(2)} kr',
+                              style: TextStyle(fontSize: 14, color: handler.isOnSale(item.product) ? Colors.red : Colors.black),
+                            ),
                           ],
                         ),
                       );
@@ -940,7 +944,10 @@ class _SavedCartCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text('Antal: ${item.amount.toStringAsFixed(0)}', style: const TextStyle(color: Colors.black54)),
                           const SizedBox(height: 4),
-                          Text('${item.product.price.toStringAsFixed(2)} kr', style: const TextStyle(fontSize: 14, color: Colors.black)),
+                          Text(
+                            '${context.watch<ImatDataHandler>().displayPrice(item.product).toStringAsFixed(2)} kr',
+                            style: TextStyle(fontSize: 14, color: context.watch<ImatDataHandler>().isOnSale(item.product) ? Colors.red : Colors.black),
+                          ),
                         ],
                       ),
                     );

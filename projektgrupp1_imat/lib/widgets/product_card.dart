@@ -142,7 +142,7 @@ class _ProductCardState extends State<ProductCard> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${(widget.product.price).toStringAsFixed(2)} kr',
+                                  '${(widget.iMat.displayPrice(widget.product)).toStringAsFixed(2)} kr',
                                   style: const TextStyle(
                                     fontSize: ProductCard.unitTextSize,
                                     color: Colors.black54,
@@ -155,18 +155,64 @@ class _ProductCardState extends State<ProductCard> {
 
                         const SizedBox(height: 8),
 
-                        // Price row with eco badge
+                        // Price row with eco badge and optional sale indicator
                         Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                '${widget.product.price.toStringAsFixed(2)} kr',
-                                style: const TextStyle(
-                                  fontSize: ProductCard.priceTextSize,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (widget.iMat.isOnSale(widget.product))
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '${widget.product.price.toStringAsFixed(2)} kr',
+                                          style: const TextStyle(
+                                            fontSize: ProductCard.unitTextSize,
+                                            color: Colors.black38,
+                                            decoration: TextDecoration.lineThrough,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '${widget.iMat.displayPrice(widget.product).toStringAsFixed(2)} kr',
+                                          style: TextStyle(
+                                            fontSize: ProductCard.priceTextSize,
+                                            fontWeight: FontWeight.w800,
+                                            color: widget.iMat.isOnSale(widget.product) ? Colors.red : Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Text(
+                                      '${widget.iMat.displayPrice(widget.product).toStringAsFixed(2)} kr',
+                                      style: TextStyle(
+                                        fontSize: ProductCard.priceTextSize,
+                                        fontWeight: FontWeight.w800,
+                                        color: widget.iMat.isOnSale(widget.product) ? Colors.red : Colors.black,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
+                            if (widget.iMat.isOnSale(widget.product))
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE53935),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'REA',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
                             if (widget.product.isEcological)
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

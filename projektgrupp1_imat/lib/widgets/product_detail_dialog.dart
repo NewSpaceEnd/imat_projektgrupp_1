@@ -122,7 +122,13 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _InfoChip(label: 'Pris', value: '${widget.product.price.toStringAsFixed(2)} kr'),
+                        _InfoChip(
+                          label: 'Pris',
+                          value: widget.iMat.isOnSale(widget.product)
+                              ? '${widget.iMat.displayPrice(widget.product).toStringAsFixed(2)} kr (ord. ${widget.product.price.toStringAsFixed(2)} kr)'
+                              : '${widget.iMat.displayPrice(widget.product).toStringAsFixed(2)} kr',
+                          valueColor: widget.iMat.isOnSale(widget.product) ? Colors.red : null,
+                        ),
                         _InfoChip(label: 'Enhet', value: widget.product.unit),
                         _InfoChip(label: 'Kategori', value: widget.product.category.name),
                         _InfoChip(label: 'Ekologisk', value: widget.product.isEcological ? 'Ja' : 'Nej'),
@@ -264,8 +270,9 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
 class _InfoChip extends StatelessWidget {
   final String label;
   final String value;
+  final Color? valueColor;
 
-  const _InfoChip({required this.label, required this.value});
+  const _InfoChip({required this.label, required this.value, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
@@ -283,7 +290,7 @@ class _InfoChip extends StatelessWidget {
       ),
       child: Text(
         '$label: $value',
-        style: TextStyle(fontSize: productDetailUpdatedChipTextSize * chipScale, fontWeight: FontWeight.w600, color: Colors.black87),
+        style: TextStyle(fontSize: productDetailUpdatedChipTextSize * chipScale, fontWeight: FontWeight.w600, color: valueColor ?? Colors.black87),
       ),
     );
   }

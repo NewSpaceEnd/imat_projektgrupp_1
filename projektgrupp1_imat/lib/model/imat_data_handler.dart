@@ -719,7 +719,7 @@ class ImatDataHandler extends ChangeNotifier {
     double total = 0;
 
     for (final item in _shoppingCart.items) {
-      total = total + item.amount * item.product.price;
+      total = total + item.amount * displayPrice(item.product);
     }
     return total;
   }
@@ -928,6 +928,22 @@ import 'package:http/http.dart' as http;
     _products.clear();
     _products.addAll(jsonData.map((item) => Product.fromJson(item)).toList());
 
+    // Mark a small selection of cheapest products as "on sale" so the
+    // UI shows a small price reduction everywhere (cart, checkout, orders).
+    try {
+      final sorted = [..._products]..sort((a, b) => a.price.compareTo(b.price));
+      if (sorted.isNotEmpty) {
+        final limit = (sorted.length * 0.35).ceil().clamp(1, sorted.length);
+        _onSaleProductIds.clear();
+        for (final p in sorted.take(limit)) {
+          _onSaleProductIds.add(p.productId);
+        }
+      }
+    } catch (e) {
+      // ignore any unexpected parsing issues and leave _onSaleProductIds empty
+      debugPrint('error selecting on-sale products: $e');
+    }
+
     _selectProducts.clear();
     _selectProducts.addAll(_products);
 
@@ -984,6 +1000,26 @@ import 'package:http/http.dart' as http;
      */
 
     notifyListeners();
+  }
+
+  // A set of productIds that should be considered "on sale".
+  // Populated at startup using a small campaign selection (cheapest ~35%).
+  final Set<int> _onSaleProductIds = {};
+
+  /// Returns true if [product] is considered on sale.
+  bool isOnSale(Product product) {
+    return _onSaleProductIds.contains(product.productId);
+  }
+
+  /// Returns the price that should be displayed for [product].
+  /// If product is on sale, a small fixed reduction is applied.
+  double displayPrice(Product product) {
+    if (isOnSale(product)) {
+      // Small visible reduction: 3.0 SEK (keeps change minimal)
+      final reduced = (product.price - 3.0);
+      return reduced > 0 ? reduced : 0.0;
+    }
+    return product.price;
   }
 
   String? _activeUserKey() {

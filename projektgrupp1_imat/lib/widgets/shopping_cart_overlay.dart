@@ -248,7 +248,10 @@ class _CartLineItem extends StatelessWidget {
                     style: TextStyle(fontSize: shoppingCartOverlaySmallTextSize, color: Colors.black54),
                   ),
                   const SizedBox(height: 4),
-                  Text('${item.total.toStringAsFixed(2)} kr', style: TextStyle(fontSize: shoppingCartOverlayBodyTextSize)),
+                  Text(
+                    '${(iMat.displayPrice(item.product) * item.amount).toStringAsFixed(2)} kr',
+                    style: TextStyle(fontSize: shoppingCartOverlayBodyTextSize, color: iMat.isOnSale(item.product) ? Colors.red : Colors.black),
+                  ),
                 ],
               ),
             ),

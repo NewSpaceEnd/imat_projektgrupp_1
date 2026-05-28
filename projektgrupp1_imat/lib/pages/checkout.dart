@@ -830,7 +830,10 @@ class _CheckoutPageState extends State<CheckoutPage> with TickerProviderStateMix
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text('${(prod.price * it.amount).toStringAsFixed(2)} kr', style: const TextStyle(fontSize: checkoutReviewPriceTextSize, fontWeight: FontWeight.w700, color: Colors.black)),
+                          Text(
+                            '${(iMat.displayPrice(prod) * it.amount).toStringAsFixed(2)} kr',
+                            style: TextStyle(fontSize: checkoutReviewPriceTextSize, fontWeight: FontWeight.w700, color: iMat.isOnSale(prod) ? Colors.red : Colors.black),
+                          ),
                         ],
                       ),
                     );

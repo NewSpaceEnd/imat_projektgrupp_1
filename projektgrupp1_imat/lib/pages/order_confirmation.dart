@@ -28,7 +28,9 @@ class OrderConfirmationPage extends StatelessWidget {
     // Orders are stored newest-first in the handler (_orders.insert(0,...)).
     // Pick the first entry to display the most recent order.
     final last = orders.isNotEmpty ? orders.first : null;
-    final orderSubtotal = last?.getTotal() ?? 0;
+    final orderSubtotal = last == null
+      ? 0.0
+      : last.items.fold<double>(0.0, (sum, it) => sum + it.amount * iMat.displayPrice(it.product));
     final appliedServiceFee = last == null || last.items.isEmpty ? 0.0 : serviceFee;
     final totalWithService = orderSubtotal + appliedServiceFee;
 
@@ -284,8 +286,9 @@ class _PurchasedItemsPreview extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
+                itemBuilder: (context, index) {
           final item = items[index];
+                  final handler = context.read<ImatDataHandler>();
           return Container(
             width: 150,
             padding: const EdgeInsets.all(10),
@@ -316,8 +319,8 @@ class _PurchasedItemsPreview extends StatelessWidget {
                 Text('Antal: ${item.amount.toStringAsFixed(0)}'),
                 const SizedBox(height: 4),
                 Text(
-                  'Pris: ${item.product.price.toStringAsFixed(2)} kr',
-                  style: const TextStyle(fontSize: orderConfirmationProductPriceTextSize, color: Colors.black),
+                  'Pris: ${handler.displayPrice(item.product).toStringAsFixed(2)} kr',
+                  style: TextStyle(fontSize: orderConfirmationProductPriceTextSize, color: handler.isOnSale(item.product) ? Colors.red : Colors.black),
                 ),
               ],
             ),
